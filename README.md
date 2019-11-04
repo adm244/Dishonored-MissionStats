@@ -1,0 +1,3 @@
+Shows a notification if player has been spotted and thus ghost playthrough is ruined.
+
+More in future...
