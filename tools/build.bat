@@ -2,16 +2,19 @@
 REM This file is a part of cdev project
 REM https://github.com/adm244/cdev
 
+SET INCLUDE=%DXSDK_DIR%Include;%INCLUDE%
+SET LIB=%DXSDK_DIR%Lib\x86;%LIB%
+
 SETLOCAL
 REM [customize those variables]
-SET libs=kernel32.lib
+SET libs=kernel32.lib d3dx9.lib
 SET files=%source%\main.cpp
 SET libname=missionstats
 SET common=%source%\common
 
 SET debug=/Od /Zi /DDebug /nologo /LDd
 SET release=/O2 /WX /nologo /LD
-SET args=%release% /I%common% /Fe%libname% %files% /link %libs%
+SET args=%debug% /I%common% /Fe%libname% %files% /link %libs%
 
 SET compiler=CL
 REM ###########################

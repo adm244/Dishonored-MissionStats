@@ -110,10 +110,28 @@ internal void * RIPRel32(void *src, u8 opcode_length)
   return (void *)(rip + offset);
 }
 
+/*internal i8 RIPRelOffset8(void *rip, void *dest)
+{
+  return (i8)((i32)dest - (i32)rip);
+}*/
+
 internal i32 RIPRelOffset32(void *rip, void *dest)
 {
   return (i32)dest - (i32)rip;
 }
+
+/// Assembles a relative 8-bit jump
+/*internal void * JumpRel8(void *src, void *dest)
+{
+  u8 *p = (u8 *)src;
+  u8 *pend = (u8 *)(p + 2);
+
+  // assemble jmp dest
+  p[0] = 0xEB;
+  *((i8 *)(&p[1])) = RIPRelOffset8(pend, dest);
+  
+  return pend;
+}*/
 
 /// Assembles a relative 32-bit jump
 internal void * JumpRel32(void *src, void *dest)
@@ -121,7 +139,7 @@ internal void * JumpRel32(void *src, void *dest)
   u8 *p = (u8 *)src;
   u8 *pend = (u8 *)(p + DETOUR_LENGTH);
 
-  // assemble jmp [dest]
+  // assemble jmp dest
   p[0] = 0xE9;
   *((i32 *)(&p[1])) = RIPRelOffset32(pend, dest);
   
@@ -150,5 +168,28 @@ internal bool WriteDetour(void *src, void *dest, int padding)
   
   return true;
 }
+
+/*internal bool HotPatch(void *src, void *dest, void **originalFunc)
+{
+  DWORD oldProtection;
+  BOOL result = VirtualProtect(src, DETOUR_LENGTH, PAGE_EXECUTE_READWRITE, &oldProtection);
+  if (!result) {
+    return false;
+  }
+  
+  void *relDest = (void *)((u8)src - 5);
+  
+  JumpRel32(relDest, dest);
+  JumpRel8(src, relDest);
+  
+  *(u32 *)originalFunc = (u32)src + 2;
+  
+  result = VirtualProtect(src, DETOUR_LENGTH, oldProtection, &oldProtection);
+  if (!result) {
+    return false;
+  }
+  
+  return true;
+}*/
 
 #endif

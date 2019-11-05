@@ -23,39 +23,41 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef _TYPES_H
-#define _TYPES_H
+//IMPORTANT(adm244): SCRATCH VERSION JUST TO GET IT UP WORKING
 
-#define internal static
-#define offsetof(s, m) ((size_t)&(((s *)0)->m))
+#ifndef _HOOKS_CPP_
+#define _HOOKS_CPP_
 
-#ifndef CDECL
-#define CDECL __cdecl
-#endif
-#define STDCALL __stdcall
-#define THISCALL __thiscall
-#define NAKED __declspec(naked)
-#define NOINLINE __declspec(noinline)
+internal void *modify_stat_variable_hook_ret = (void *)0x00AA94A5;
 
-#define assert_size(obj, size) static_assert(sizeof(obj) == size, "Size of " #obj " should be " #size)
-
-typedef char i8;
-typedef short i16;
-typedef int i32;
-typedef long long i64;
-
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
-
-typedef unsigned int uint;
-
-typedef float r32;
-typedef double r64;
-
-typedef i8 b8;
-typedef i16 b16;
-typedef i32 b32;
+internal void NAKED ModifyStatVariable_Hook()
+{
+  __asm {
+    push ebp
+    mov ebp, esp
+    
+    mov eax, [ebp+0Ch]
+    push eax
+    mov eax, [ebp+08h]
+    push eax
+    push ecx
+    call ModifyStatVariable
+    pop ecx
+    add esp, 08h
+    pop ebp
+    
+    test eax, eax
+    jnz continue
+    ret 08h
+    
+  continue:
+    push ebp
+    mov ebp, esp
+    push esi
+    push edi
+    
+    jmp [modify_stat_variable_hook_ret]
+  }
+}
 
 #endif
