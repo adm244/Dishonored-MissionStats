@@ -28,6 +28,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _DETOURS_CPP
 #define _DETOURS_CPP
 
+#define PSAPI_VERSION 1
+#include <psapi.h>
+
 #define DETOUR_LENGTH 5
 
 internal void * FindWString(void *beginAddress, void *endAddress, wchar_t *str)

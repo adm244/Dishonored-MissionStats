@@ -138,12 +138,22 @@ internal r32 NOINLINE GetMissionStatVariable(Unk01 *unk, int type)
 
 internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
 {
-  r32 currentValue = GetMissionStatVariable(unk, type);
-  
   switch (type) {
     case MissionStat_DetectedTimes: {
-      if ((currentValue > -1.0) && (currentValue < 1.0) && (amount > 0.0)) {
+      r32 detectedTimes = GetMissionStatVariable(unk, type);
+      
+      if ((!detectedTimes) && (amount > 0.0f)) {
         ShowLocationDiscovery(L"You've been spotted", false);
+      }
+    } break;
+    
+    case MissionStat_HostilesKilled:
+    case MissionStat_CiviliansKilled: {
+      r32 hostilesKilled = GetMissionStatVariable(unk, MissionStat_HostilesKilled);
+      r32 civiliansKilled = GetMissionStatVariable(unk, MissionStat_CiviliansKilled);
+      
+      if ((!hostilesKilled) && (!civiliansKilled) && (amount > 0.0f)) {
+        ShowLocationDiscovery(L"You've killed somebody", false);
       }
     } break;
     

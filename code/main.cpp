@@ -37,9 +37,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     - Ability to lock a specific mission stat value
 */
 
-#define PSAPI_VERSION 1
 #include <windows.h>
-#include <psapi.h>
 #include <cstdio>
 
 #include "types.h"
