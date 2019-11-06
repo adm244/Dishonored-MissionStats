@@ -33,7 +33,7 @@ OTHER DEALINGS IN THE SOFTWARE.
   MissionStatEntry:
     [0x00] Type (1 byte)
     [0x04] Current Value (4 bytes, float)
-    [0x08] Maximum Value (4 bytes, int or float)
+    [0x08] Maximum Value (4 bytes, int)
   
   MissionStatTypes:
     AlarmsRung = 0x03,
@@ -85,10 +85,7 @@ assert_size(UString, 0xC);
 struct MissionStatEntry {
   u8 type;
   r32 value;
-  union {
-    u32 maxValueInt;
-    r32 maxValueFloat;
-  };
+  u32 maxValue;
 };
 assert_size(MissionStatEntry, 0xC);
 
@@ -102,59 +99,81 @@ struct Unk01 {
 
 typedef void * (STDCALL _GetUnk10)();
 typedef void (THISCALL *_Unk10_ShowLocationDiscovery)(void *unk10, UString *text, int playSound);
+typedef void (THISCALL *_Unk10_ShowGameMessage)(void *unk10, UString *text, r32 duration);
 
 internal _GetUnk10 *GetUnk10 = (_GetUnk10 *)0x00BBF760;
 internal _Unk10_ShowLocationDiscovery Unk10_ShowLocationDiscovery = (_Unk10_ShowLocationDiscovery)0x00B94D60;
+internal _Unk10_ShowGameMessage Unk10_ShowGameMessage = (_Unk10_ShowGameMessage)0x00BAFFA0;
+
+internal UString GetUString(wchar_t *text)
+{
+  UString str = {0};
+  str.text = text;
+  str.length = wcslen(text) + 1;
+  str.capacity = str.length;
+  
+  return str;
+}
 
 internal void ShowLocationDiscovery(wchar_t *text, bool playSound)
 {
   void *unk10 = GetUnk10();
-  
-  UString str = {0};
-  str.text = text;
-  str.length = wcslen(text);
-  str.capacity = str.length;
-  
-  Unk10_ShowLocationDiscovery(unk10, &str, playSound ? 1 : 0);
+  UString *str = &GetUString(text);
+  Unk10_ShowLocationDiscovery(unk10, str, playSound ? 1 : 0);
+}
+
+internal void ShowGameMessage(wchar_t *text, r32 duration)
+{
+  void *unk10 = GetUnk10();
+  UString *str = &GetUString(text);
+  Unk10_ShowGameMessage(unk10, str, duration);
 }
 
 //INVESTIGATE(adm244): In release mode when msvc 2010 inlines this function
 // the return value overwrites unk parameter on a stack with itself,
 // but it happens only if this function returns float, all is fine when integer is returned
 // Possible compiler bug or am I missing something regarding calling-conventions?
-internal r32 NOINLINE GetMissionStatVariable(Unk01 *unk, int type)
+internal NOINLINE MissionStatEntry * GetMissionStatVariable(Unk01 *unk, int type)
 {
   Array *missionStats = &unk->missionStats;
   MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
   
   for (int i = 0; i < missionStats->length; ++i) {
     if (missionStatEntries[i].type == (u8)type) {
-      return missionStatEntries[i].value;
+      return &missionStatEntries[i];
     }
   }
   
-  return -1.0;
+  OutputDebugStringA("GetMissionStatVariable: Couldn't find a specified mission stat.");
+  return 0;
 }
 
 internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
 {
+  MissionStatEntry *stat = GetMissionStatVariable(unk, type);
+  
   switch (type) {
     case MissionStat_DetectedTimes: {
-      r32 detectedTimes = GetMissionStatVariable(unk, type);
-      
-      if ((!detectedTimes) && (amount > 0.0f)) {
+      if ((!stat->value) && (amount > 0.0f)) {
         ShowLocationDiscovery(L"You've been spotted", false);
       }
     } break;
     
     case MissionStat_HostilesKilled:
     case MissionStat_CiviliansKilled: {
-      r32 hostilesKilled = GetMissionStatVariable(unk, MissionStat_HostilesKilled);
-      r32 civiliansKilled = GetMissionStatVariable(unk, MissionStat_CiviliansKilled);
+      MissionStatEntry *hostilesStat = GetMissionStatVariable(unk, MissionStat_HostilesKilled);
+      MissionStatEntry *civiliansStat = GetMissionStatVariable(unk, MissionStat_CiviliansKilled);
       
-      if ((!hostilesKilled) && (!civiliansKilled) && (amount > 0.0f)) {
+      if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
         ShowLocationDiscovery(L"You've killed somebody", false);
       }
+    } break;
+    
+    case MissionStat_CoinsFound: {
+      wchar_t buffer[255];
+      swprintf(buffer, 255, L"Collected %g of %d coins", stat->value + amount, stat->maxValue);
+      
+      ShowGameMessage(buffer, 2.f);
     } break;
     
     default:

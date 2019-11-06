@@ -42,7 +42,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "types.h"
 #include "detours.cpp"
-#include "d3dhook.cpp"
+//#include "d3dhook.cpp"
 
 #include "dishonored.cpp"
 #include "hooks.cpp"
@@ -53,9 +53,9 @@ internal bool Initialize()
     return false;
   }
   
-  if (!D3D9HookInitialize()) {
+  /*if (!D3D9HookInitialize()) {
     return false;
-  }
+  }*/
   
   return true;
 }
