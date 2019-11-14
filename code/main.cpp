@@ -49,7 +49,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 internal bool Initialize()
 {
-  if (!WriteDetour((void *)0x00AA94A0, ModifyStatVariable_Hook, 0)) {
+  /*if (!WriteDetour((void *)0x00AA94A0, ModifyStatVariable_Hook, 0)) {
+    return false;
+  }*/
+  
+  if (!WriteDetour((void *)0x00BCCEDB, ShowPauseMenuPost_Hook, 1)) {
     return false;
   }
   

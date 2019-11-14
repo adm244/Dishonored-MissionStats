@@ -14,7 +14,7 @@ SET common=%source%\common
 
 SET debug=/Od /Zi /DDebug /nologo /LDd
 SET release=/O2 /WX /nologo /LD
-SET args=%release% /I%common% /Fe%libname% %files% /link %libs%
+SET args=%debug% /I%common% /Fe%libname% %files% /link %libs%
 
 SET compiler=CL
 REM ###########################

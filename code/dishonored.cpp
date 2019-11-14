@@ -49,8 +49,23 @@ OTHER DEALINGS IN THE SOFTWARE.
     SokolovPaintingsFound = 0x25,
 */
 
+/*
+  Get Unk20 to use ShowNote function:
+    1) Get object at [0x0144CF44]
+    2) Get array of UIObject's at [0x10]
+      // this list keeps all preloaded scaleform gfx objects
+      // so, we have to load it somehow before we can use it :sad_face:
+    3) Get Notes UIObject at [0x8] (assuming it's always in a same place)
+    4) (optional) Check that value is not 0 at [0x48]
+    5) Get Unk20 object at [0x5C]
+  
+  Unk20 contains NotesContents
+*/
+
 #ifndef _DISHONORED_CPP_
 #define _DISHONORED_CPP_
+
+#include "scaleform3.h"
 
 enum MissionStatTypes {
   MissionStat_AlarmsRung = 0x03,
@@ -95,15 +110,78 @@ struct Unk01 {
   // ...
 };
 
+//FIX(adm244): same as UIObject???
+struct DisGFxMovie {
+  UString name;
+  u8 unk0C[0x34-0x0C];
+  GFxMovie *movie; // 0x34
+  // ...
+};
+
+struct DisGFxMoviePlayerPauseMenu {
+  void *vtable;
+  u8 unk04[0x38-0x04];
+  DisGFxMovie *disMovie; // 0x38
+  // ...
+};
+
+/*struct UIObject {
+  UString name;
+  u32 unk0C[15];
+  u32 flags; // 0x48
+  u32 unk4C[4];
+  void *unk20; // 0x5C
+  // ...
+};
+
+struct Unk20_1 {
+  void *vtable;
+  u32 unk04;
+  u32 unk08;
+  u32 unk0C;
+  Array uiObjects; // 0x10
+  // ...
+};
+
+struct NoteContents {
+  void *vtable;
+  UString title;
+  UString text;
+};
+assert_size(NoteContents, 0x1C);*/
+
 #pragma pack(pop)
 
 typedef void * (STDCALL _GetUnk10)();
 typedef void (THISCALL *_Unk10_ShowLocationDiscovery)(void *unk10, UString *text, int playSound);
 typedef void (THISCALL *_Unk10_ShowGameMessage)(void *unk10, UString *text, r32 duration);
+//typedef void (THISCALL *_Unk20_ShowNote)(void *unk20, NoteContents *contents, int unk03);
 
 internal _GetUnk10 *GetUnk10 = (_GetUnk10 *)0x00BBF760;
 internal _Unk10_ShowLocationDiscovery Unk10_ShowLocationDiscovery = (_Unk10_ShowLocationDiscovery)0x00B94D60;
 internal _Unk10_ShowGameMessage Unk10_ShowGameMessage = (_Unk10_ShowGameMessage)0x00BAFFA0;
+//internal _Unk20_ShowNote Unk20_ShowNote = (_Unk20_ShowNote)0x00BCC2B0;
+
+/*internal void * GetUnk20()
+{
+  Unk20_1 *unk20_1 = *(Unk20_1 **)0x0144CF44;
+  if (!unk20_1)
+    return 0;
+  
+  Array *array = &unk20_1->uiObjects;
+  if (array->length < 3)
+    return 0;
+  
+  UIObject **uiObjects = (UIObject **)array->data;
+  if (!uiObjects)
+    return 0;
+  
+  UIObject *uiNotes = uiObjects[2];
+  if (uiNotes && uiNotes->flags)
+    return uiNotes->unk20;
+  
+  return 0;
+}*/
 
 internal UString GetUString(wchar_t *text)
 {
@@ -114,6 +192,16 @@ internal UString GetUString(wchar_t *text)
   
   return str;
 }
+
+/*internal NoteContents GetNoteContents(UString *title, UString *text)
+{
+  NoteContents note = {0};
+  note.vtable = (void *)0x010DEFB8;
+  note.title = *title;
+  note.text = *text;
+  
+  return note;
+}*/
 
 internal void ShowLocationDiscovery(wchar_t *text, bool playSound)
 {
@@ -148,6 +236,53 @@ internal NOINLINE MissionStatEntry * GetMissionStatVariable(Unk01 *unk, int type
   return 0;
 }
 
+internal void CDECL ShowPauseMenuPost(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
+{
+  /*
+    DisGFxMoviePlayerPauseMenu -> UI_struct (at 0x38) -> GFxMovie (at 0x34)
+    
+    GetVariable() returns a GFXValue that contains an ArrayObject (scaleform object)
+  */
+  
+  //TODO(adm244): while stuff below works perfectly fine, we have to replace a call to
+  // "ShowPauseMenu" entirely in order to display any changes...
+  
+  //GFxValue value = {0};
+  GFxValue _menuContent[10] = {0};
+  char *pathToVar = "_root.pauseMenu_mc._menu_mc._menuContent";
+  
+  GFxMovie *movie = pauseMenuMoviePlayer->disMovie->movie;
+  //bool result = movie->vtable->GetVariable(movie, &value, pathToVar);
+  
+  uint length = movie->vtable->GetVariableArraySize(movie, pathToVar);
+  bool result = movie->vtable->GetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length);
+  
+  for (int i = 0; i < length; ++i) {
+    GFxValue txtField = {0};
+    GFxValue callbackField = {0};
+    GFxValue lockStateField = {0};
+    
+    bool result = false;
+    result = GFxValue_GetMember(&_menuContent[i], "txt", &txtField);
+    result = GFxValue_GetMember(&_menuContent[i], "callback", &callbackField);
+    result = GFxValue_GetMember(&_menuContent[i], "lockState", &lockStateField);
+    
+    wchar_t buffer[100];
+    swprintf(buffer, 100, L"Button %d", (i + 1));
+    GFxValue_SetStringW(&txtField, buffer);
+    
+    /*lockStateField.valueInterface = txtField.valueInterface;
+    lockStateField.type = VT_Boolean;
+    lockStateField.boolean = (i % 2) ? true : false;*/
+    
+    result = GFxValue_SetMember(&_menuContent[i], "txt", &txtField);
+    result = GFxValue_SetMember(&_menuContent[i], "callback", &callbackField);
+    //result = GFxValue_SetMember(&_menuContent[i], "lockState", &lockStateField);
+  }
+  
+  result = movie->vtable->SetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length, SV_Sticky);
+}
+
 internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
 {
   MissionStatEntry *stat = GetMissionStatVariable(unk, type);
@@ -174,6 +309,14 @@ internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
       swprintf(buffer, 255, L"Collected %g of %d coins", stat->value + amount, stat->maxValue);
       
       ShowGameMessage(buffer, 2.f);
+      
+      /*UString *title = &GetUString(L"Coins collected");
+      UString *text = &GetUString(buffer);
+      NoteContents *note = &GetNoteContents(title, text);
+      
+      //TODO(adm244): figure out how to preload UI_NOTES gfx
+      void *unk20 = GetUnk20();
+      Unk20_ShowNote(unk20, note, 0);*/
     } break;
     
     default:
