@@ -27,7 +27,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define _TYPES_H
 
 #define internal static
+
+#ifndef arraysize
+#define arraysize(a) (sizeof(a)/sizeof(a[0]))
+#endif
+
+#ifndef offsetof
 #define offsetof(s, m) ((size_t)&(((s *)0)->m))
+#endif
 
 #ifndef CDECL
 #define CDECL __cdecl

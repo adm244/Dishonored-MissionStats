@@ -242,7 +242,31 @@ internal NOINLINE MissionStatEntry * GetMissionStatVariable(Unk01 *unk, int type
   return 0;
 }
 
-struct SetPauseManuFunc : FunctionHandler {
+enum ButtonLockState {
+  LockState_None,
+  LockState_SaveGame,
+  LockState_LoadGame,
+  LockState_Help,
+};
+
+struct ButtonsData {
+  char *name;
+  char *callback;
+  ButtonLockState state;
+};
+
+ButtonsData data[] = {
+  {"_root.texts.t_ResumeGame", "OnResumeClicked", LockState_None},
+  {"_root.texts.t_SaveGame", "OnSaveGameClicked", LockState_SaveGame},
+  {"_root.texts.t_LoadGamePauseMenu", "OnLoadGameClicked", LockState_LoadGame},
+  {"_root.texts.t_Options", "OnOptionsClicked", LockState_None},
+  {"_root.texts.t_MissionStats", "OnMissionStatsClicked", LockState_None},
+  {"_root.texts.t_Help", "OnTutorialsClicked", LockState_Help},
+  {"_root.texts.t_BackToMainMenu", "OnQuitGameClicked", LockState_None},
+  {"_root.texts.t_BackToWindows", "OnBackToWindowsClicked", LockState_None},
+};
+
+struct SetPauseMenuFunc : FunctionHandler {
   void Call(Params *params)
   {
     GFxValue saveState_obj = {0};
@@ -259,17 +283,34 @@ struct SetPauseManuFunc : FunctionHandler {
     GFxValue buttonsASArray = {0};
     GFxMovie_CreateArray(params->movie, &buttonsASArray);
     
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < arraysize(data); ++i) {
       GFxValue button = {0};
       GFxMovie_CreateObject(params->movie, &button, 0, 0, 0);
       
       GFxValue text = {0};
       GFxValue callback = {0};
       GFxValue lockState = {0};
+
+      GFxMovie_GetVariable(params->movie, &text, data[i].name);
+      GFxValue_GetMember(params->thisPtr, data[i].callback, &callback);
       
-      GFxMovie_GetVariable(params->movie, &text, "_root.texts.t_ResumeGame");
-      GFxValue_GetMember(params->thisPtr, "OnResumeClicked", &callback);
-      GFxValue_SetBoolean(&lockState, false);
+      switch (data[i].state) {
+        case LockState_SaveGame: {
+          GFxValue_SetBoolean(&lockState, !_isSaveGame_field.boolean);
+        } break;
+        
+        case LockState_LoadGame: {
+          GFxValue_SetBoolean(&lockState, !_isLoadGame_field.boolean);
+        } break;
+        
+        case LockState_Help: {
+          GFxValue_SetBoolean(&lockState, !_showHelpButton_field.boolean);
+        } break;
+        
+        default: {
+          GFxValue_SetBoolean(&lockState, false);
+        } break;
+      }
       
       GFxValue_SetMember(&button, "txt", &text);
       GFxValue_SetMember(&button, "callback", &callback);
@@ -289,7 +330,15 @@ struct SetPauseManuFunc : FunctionHandler {
   }
 };
 
-internal SetPauseManuFunc SetPauseMenu;
+struct OnMissionStatsClickedFunc : FunctionHandler {
+  void Call(Params *params)
+  {
+    GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
+  }
+};
+
+internal SetPauseMenuFunc SetPauseMenu;
+internal OnMissionStatsClickedFunc OnMissionStatsClicked;
 
 internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
 {
@@ -298,9 +347,26 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   
   GFxValue pauseMenu_mc;
   GFxValue SetPauseMenu_func;
+  GFxValue OnMissionStatsClicked_func;
   
   GFxMovie *gfxPauseMenu = pauseMenuMoviePlayer->disMovie->movie;
   if (!GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
+    return;
+  
+  GFxValue t_MissionStats_field = {0};
+  GFxValue_SetStringW(&t_MissionStats_field, L"STATISTICS");
+  GFxMovie_SetVariable(gfxPauseMenu, "_root.texts.t_MissionStats", &t_MissionStats_field, SV_Normal);
+  
+  //FIX(adm244): for some reason we don't get to execute this function,
+  // since app crashes. Maybe it's related to a way AS invokes a callback?
+  // Do we really have to reimplement YET ANOTHER function to make it work?
+  //
+  // Check this line in "OnPlayerChoiceConfirm":
+  //  _menuContent[sel._curSelection].callback.call(_parent);
+  //
+  // Investigate this "call" method!
+  GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, &OnMissionStatsClicked, 0);
+  if (!GFxValue_SetMember(&pauseMenu_mc, "OnMissionStatsClicked", &OnMissionStatsClicked_func))
     return;
   
   GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, &SetPauseMenu, 0);
