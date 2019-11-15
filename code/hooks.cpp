@@ -29,7 +29,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define _HOOKS_CPP_
 
 internal void *modify_stat_variable_hook_ret = (void *)0x00AA94A5;
-internal void *showpausemenupost_hook_ret = (void *)0x00BCCEE1;
+internal void *showpausemenu_hook_ret = (void *)0x00BCCCA5;
+//internal void *showpausemenupost_hook_ret = (void *)0x00BCCEE1;
 
 internal void NAKED ModifyStatVariable_Hook()
 {
@@ -61,7 +62,22 @@ internal void NAKED ModifyStatVariable_Hook()
   }
 }
 
-internal void NAKED ShowPauseMenuPost_Hook()
+internal void NAKED ShowPauseMenu_Hook()
+{
+  __asm {
+    push ecx
+    call ShowPauseMenu
+    pop ecx
+    
+    push ebp
+    mov ebp, esp
+    push 0FFFFFFFFh
+    
+    jmp [showpausemenu_hook_ret]
+  }
+}
+
+/*internal void NAKED ShowPauseMenuPost_Hook()
 {
   __asm {
     pushad
@@ -75,6 +91,6 @@ internal void NAKED ShowPauseMenuPost_Hook()
     
     jmp [showpausemenupost_hook_ret]
   }
-}
+}*/
 
 #endif

@@ -53,9 +53,13 @@ internal bool Initialize()
     return false;
   }*/
   
-  if (!WriteDetour((void *)0x00BCCEDB, ShowPauseMenuPost_Hook, 1)) {
+  if (!WriteDetour((void *)0x00BCCCA0, ShowPauseMenu_Hook, 0)) {
     return false;
   }
+  
+  /*if (!WriteDetour((void *)0x00BCCEDB, ShowPauseMenuPost_Hook, 1)) {
+    return false;
+  }*/
   
   /*if (!D3D9HookInitialize()) {
     return false;

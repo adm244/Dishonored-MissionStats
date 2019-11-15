@@ -81,6 +81,10 @@ enum MissionStatTypes {
   MissionStat_SokolovPaintingsFound = 0x25,
 };
 
+enum DisGFxMoviePlayerPauseMenu_Modes {
+  PauseMenuMode_GameOver = 2,
+};
+
 #pragma pack(4)
 
 struct Array {
@@ -122,6 +126,8 @@ struct DisGFxMoviePlayerPauseMenu {
   void *vtable;
   u8 unk04[0x38-0x04];
   DisGFxMovie *disMovie; // 0x38
+  u8 unk3C[0x1F8-0x3C];
+  u8 mode; // 0x1F8
   // ...
 };
 
@@ -236,52 +242,125 @@ internal NOINLINE MissionStatEntry * GetMissionStatVariable(Unk01 *unk, int type
   return 0;
 }
 
-internal void CDECL ShowPauseMenuPost(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
-{
-  /*
-    DisGFxMoviePlayerPauseMenu -> UI_struct (at 0x38) -> GFxMovie (at 0x34)
+struct SetPauseManuFunc : FunctionHandler {
+  void Call(Params *params)
+  {
+    GFxValue saveState_obj = {0};
+    GFxValue_Invoke(params->thisPtr, &saveState_obj, "GetSaveState", 0, 0);
     
-    GetVariable() returns a GFXValue that contains an ArrayObject (scaleform object)
-  */
-  
-  //TODO(adm244): while stuff below works perfectly fine, we have to replace a call to
-  // "ShowPauseMenu" entirely in order to display any changes...
-  
-  //GFxValue value = {0};
-  GFxValue _menuContent[10] = {0};
-  char *pathToVar = "_root.pauseMenu_mc._menu_mc._menuContent";
-  
-  GFxMovie *movie = pauseMenuMoviePlayer->disMovie->movie;
-  //bool result = movie->vtable->GetVariable(movie, &value, pathToVar);
-  
-  uint length = movie->vtable->GetVariableArraySize(movie, pathToVar);
-  bool result = movie->vtable->GetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length);
-  
-  for (int i = 0; i < length; ++i) {
-    GFxValue txtField = {0};
-    GFxValue callbackField = {0};
-    GFxValue lockStateField = {0};
+    GFxValue _isSaveGame_field = {0};
+    GFxValue _isLoadGame_field = {0};
+    GFxValue _showHelpButton_field = {0};
     
-    bool result = false;
-    result = GFxValue_GetMember(&_menuContent[i], "txt", &txtField);
-    result = GFxValue_GetMember(&_menuContent[i], "callback", &callbackField);
-    result = GFxValue_GetMember(&_menuContent[i], "lockState", &lockStateField);
+    GFxValue_GetMember(&saveState_obj, "_isSaveGame", &_isSaveGame_field);
+    GFxValue_GetMember(&saveState_obj, "_isLoadGame", &_isLoadGame_field);
+    GFxValue_GetMember(params->thisPtr, "_showHelpButton", &_showHelpButton_field);
     
-    wchar_t buffer[100];
-    swprintf(buffer, 100, L"Button %d", (i + 1));
-    GFxValue_SetStringW(&txtField, buffer);
+    GFxValue buttonsASArray = {0};
+    GFxMovie_CreateArray(params->movie, &buttonsASArray);
     
-    /*lockStateField.valueInterface = txtField.valueInterface;
-    lockStateField.type = VT_Boolean;
-    lockStateField.boolean = (i % 2) ? true : false;*/
+    for (int i = 0; i < 1; ++i) {
+      GFxValue button = {0};
+      GFxMovie_CreateObject(params->movie, &button, 0, 0, 0);
+      
+      GFxValue text = {0};
+      GFxValue callback = {0};
+      GFxValue lockState = {0};
+      
+      GFxMovie_GetVariable(params->movie, &text, "_root.texts.t_ResumeGame");
+      GFxValue_GetMember(params->thisPtr, "OnResumeClicked", &callback);
+      GFxValue_SetBoolean(&lockState, false);
+      
+      GFxValue_SetMember(&button, "txt", &text);
+      GFxValue_SetMember(&button, "callback", &callback);
+      GFxValue_SetMember(&button, "lockState", &lockState);
+      
+      GFxValue_PushBack(&buttonsASArray, &button);
+    }
     
-    result = GFxValue_SetMember(&_menuContent[i], "txt", &txtField);
-    result = GFxValue_SetMember(&_menuContent[i], "callback", &callbackField);
-    //result = GFxValue_SetMember(&_menuContent[i], "lockState", &lockStateField);
+    GFxValue _menu_mc_field = {0};
+    GFxValue_GetMember(params->thisPtr, "_menu_mc", &_menu_mc_field);
+    
+    GFxValue delayedOpeningAnimation_field = {0};
+    GFxValue_SetBoolean(&delayedOpeningAnimation_field, true);
+    
+    GFxValue_SetMember(&_menu_mc_field, "_bDelayedOpeningAnimation", &delayedOpeningAnimation_field);
+    GFxValue_Invoke(&_menu_mc_field, 0, "SetMenu", &buttonsASArray, 1);
   }
+};
+
+internal SetPauseManuFunc SetPauseMenu;
+
+internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
+{
+  if (pauseMenuMoviePlayer->mode == PauseMenuMode_GameOver)
+    return;
   
-  result = movie->vtable->SetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length, SV_Sticky);
+  GFxValue pauseMenu_mc;
+  GFxValue SetPauseMenu_func;
+  
+  GFxMovie *gfxPauseMenu = pauseMenuMoviePlayer->disMovie->movie;
+  if (!GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
+    return;
+  
+  GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, &SetPauseMenu, 0);
+  if (!GFxValue_SetMember(&pauseMenu_mc, "SetPauseMenu", &SetPauseMenu_func))
+    return;
 }
+
+//internal void CDECL ShowPauseMenuPost(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
+//{
+//  /*
+//    DisGFxMoviePlayerPauseMenu -> UI_struct (at 0x38) -> GFxMovie (at 0x34)
+//    
+//    GetVariable() returns a GFXValue that contains an ArrayObject (scaleform object)
+//  */
+//  
+//  //TODO(adm244): while stuff below works perfectly fine, we have to replace a call to
+//  // "SetPauseMenu" entirely in order to display any changes without any issues
+//  
+//  //GFxValue value = {0};
+//  GFxValue _menuContent[10] = {0};
+//  char *pathToVar = "_root.pauseMenu_mc._menu_mc._menuContent";
+//  
+//  GFxMovie *movie = pauseMenuMoviePlayer->disMovie->movie;
+//  //bool result = movie->vtable->GetVariable(movie, &value, pathToVar);
+//  
+//  uint length = movie->vtable->GetVariableArraySize(movie, pathToVar);
+//  bool result = movie->vtable->GetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length);
+//  
+//  for (int i = 0; i < length; ++i) {
+//    GFxValue txtField = {0};
+//    GFxValue callbackField = {0};
+//    GFxValue lockStateField = {0};
+//    
+//    bool result = false;
+//    result = GFxValue_GetMember(&_menuContent[i], "txt", &txtField);
+//    result = GFxValue_GetMember(&_menuContent[i], "callback", &callbackField);
+//    result = GFxValue_GetMember(&_menuContent[i], "lockState", &lockStateField);
+//    
+//    wchar_t buffer[100];
+//    swprintf(buffer, 100, L"Button %d", (i + 1));
+//    GFxValue_SetStringW(&txtField, buffer);
+//    
+//    GFxValue_SetBoolean(&lockStateField, (i % 2) ? true : false);
+//    
+//    result = GFxValue_SetMember(&_menuContent[i], "txt", &txtField);
+//    result = GFxValue_SetMember(&_menuContent[i], "callback", &callbackField);
+//    result = GFxValue_SetMember(&_menuContent[i], "lockState", &lockStateField);
+//  }
+//  
+//  result = movie->vtable->SetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length, SV_Sticky);
+//  
+//  GFxValue _menuContentArray = {0};
+//  result = movie->vtable->GetVariable(movie, &_menuContentArray, pathToVar);
+//  
+//  GFxValue _menu_mc = {0};
+//  result = movie->vtable->GetVariable(movie, &_menu_mc, "_root.pauseMenu_mc._menu_mc");
+//  
+//  GFxValue invokeResult = {0};
+//  result = GFxValue_Invoke(&_menu_mc, &invokeResult, "SetMenu", &_menuContentArray, 1);
+//}
 
 internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
 {
