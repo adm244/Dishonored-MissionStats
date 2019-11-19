@@ -331,14 +331,15 @@ struct SetPauseMenuFunc : FunctionHandler {
 };
 
 struct OnMissionStatsClickedFunc : FunctionHandler {
-  void Call(Params *params)
+  virtual void Call(Params *params)
   {
     GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
   }
 };
 
 internal SetPauseMenuFunc SetPauseMenu;
-internal OnMissionStatsClickedFunc OnMissionStatsClicked;
+//internal OnMissionStatsClickedFunc OnMissionStatsClicked;
+internal OnMissionStatsClickedFunc *OnMissionStatsClicked = 0;
 
 internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
 {
@@ -357,15 +358,16 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   GFxValue_SetStringW(&t_MissionStats_field, L"STATISTICS");
   GFxMovie_SetVariable(gfxPauseMenu, "_root.texts.t_MissionStats", &t_MissionStats_field, SV_Normal);
   
-  //FIX(adm244): for some reason we don't get to execute this function,
-  // since app crashes. Maybe it's related to a way AS invokes a callback?
-  // Do we really have to reimplement YET ANOTHER function to make it work?
+  //IMPORTANT(adm244): so, apparently I'm being stupid and everything WAS correct
+  // except that the constructor for _THIS_ class was never called, though it _WAS_
+  // called for the SetPauseMenuFunc for some reason...
+  // I guess I have to educate myself on how C++ nightmare _REALLY_ works...
   //
-  // Check this line in "OnPlayerChoiceConfirm":
-  //  _menuContent[sel._curSelection].callback.call(_parent);
-  //
-  // Investigate this "call" method!
-  GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, &OnMissionStatsClicked, 0);
+  // Nonetheless, good thing I've checked what the actual problem was,
+  // never would've thought that the issue lies in garbage being stored in a vtable...
+  OnMissionStatsClicked = new OnMissionStatsClickedFunc();
+  
+  GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, OnMissionStatsClicked, 0);
   if (!GFxValue_SetMember(&pauseMenu_mc, "OnMissionStatsClicked", &OnMissionStatsClicked_func))
     return;
   
