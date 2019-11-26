@@ -27,7 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*
   Get Dishonored mission stats:
-    1) Get an object at [0x1452DE8]
+    1) Get an object at [0x1452DE8] (DishonoredPlayerPawn)
     2) Get an array of mission stats at [0xB7C]
   
   MissionStatEntry:
@@ -50,16 +50,47 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 
 /*
-  Get Unk20 to use ShowNote function:
-    1) Get object at [0x0144CF44]
-    2) Get array of UIObject's at [0x10]
-      // this list keeps all preloaded scaleform gfx objects
+  Get DisGFxMoviePlayerNote to use ShowNote function:
+    1) Get UIManager at [0x0144CF44]
+    2) Get array of DisGFxMovie's at [0x10]
+      // this list keeps all preloaded DisGFxMovie's
       // so, we have to load it somehow before we can use it :sad_face:
-    3) Get Notes UIObject at [0x8] (assuming it's always in a same place)
+    3) Get Notes DisGFxMovie at [0x8] (assuming it's always in a same place)
     4) (optional) Check that value is not 0 at [0x48]
-    5) Get Unk20 object at [0x5C]
+    5) Get DisGFxMoviePlayer object at [0x5C]
   
-  Unk20 contains NotesContents
+  DisGFxMoviePlayer contains NotesContents
+*/
+
+/*
+  DisGFxMoviePlayer
+    ...
+    [0x180] UString name
+    ...
+  
+  World object
+    - WorldInfo object
+      - DishonoredGameInfo object
+        - GlobalUIManager object
+          ...
+          [0x2DC] DisGFxMoviePlayerHUD (a.k.a. Unk10)
+          [0x2E0] DisGFxMoviePlayerPowerWheel
+          [0x2E4] DisGFxMoviePlayerJournal
+          [0x2E8] DisGFxMoviePlayerNote
+          [0x2EC] DisGFxMoviePlayerPauseMenu
+          [0x2F0] ???
+          [0x2F4] DisGFxMoviePlayerMissionStats
+          ...
+*/
+
+/*
+  DisTweaks_MissionStats creation:
+    1) Get DisTweak_MissionStats class at [0x01451028]
+    2) Call UClass::GetDefaultObject(this, 0) at [0x004967F0]
+      or just get it directly at [0x13C]
+    3) TODO(adm244): Initialize it with stuff...
+    
+    0x1BD, 0x1BE - DisTweak_MissionStats export index ???
 */
 
 #ifndef _DISHONORED_CPP_
@@ -108,28 +139,124 @@ struct MissionStatEntry {
 };
 assert_size(MissionStatEntry, 0xC);
 
-struct Unk01 {
+struct DishonoredPlayerPawn {
   u8 unk0[0xB7C-0x0];
   Array missionStats; // 0xB7C
   // ...
 };
 
-//FIX(adm244): same as UIObject???
+struct DisGFxMoviePlayer;
+
 struct DisGFxMovie {
   UString name;
   u8 unk0C[0x34-0x0C];
   GFxMovie *movie; // 0x34
+  u32 unk38;
+  u32 unk3C;
+  u32 unk40;
+  u32 unk44;
+  u32 flags; // 0x48
+  u8 unk4C[0x5C-0x4C];
+  DisGFxMoviePlayer *disMoviePlayer; // 0x5C
+  // ...
+};
+
+typedef bool (THISCALL *_DisGFxMoviePlayer_Start)(DisGFxMoviePlayer *, void *);
+
+struct DisGFxMoviePlayerVTable {
+  u8 unk00[0x124-0x0];
+  void *Preload; // 0x124
+  _DisGFxMoviePlayer_Start Start; // 0x128
+  void *Advance; // 0x12C
+  void *unk130;
+  void *unk134;
+  void *Close; // 0x138
+  // ...
+};
+
+struct DisGFxMoviePlayer {
+  DisGFxMoviePlayerVTable *vtable;
+  u8 unk04[0x38-0x04];
+  DisGFxMovie *disMovie; // 0x38
+  u8 unk3C[0xC4-0x3C];
+  u32 flags; // 0xC4
+  u8 unkC8[0x180-0xC8];
+  UString name; // 0x180
   // ...
 };
 
 struct DisGFxMoviePlayerPauseMenu {
-  void *vtable;
-  u8 unk04[0x38-0x04];
-  DisGFxMovie *disMovie; // 0x38
-  u8 unk3C[0x1F8-0x3C];
+  DisGFxMoviePlayer base;
+  u8 unk3C[0x1F8-sizeof(DisGFxMoviePlayer)];
   u8 mode; // 0x1F8
   // ...
 };
+assert_size(DisGFxMoviePlayerPauseMenu, 0x1FC);
+
+struct DisGFxMoviePlayerHUD {
+  DisGFxMoviePlayer base;
+  // ...
+};
+
+struct DisGFxMoviePlayerPowerWheel {
+  DisGFxMoviePlayer base;
+  // ...
+};
+
+struct DisGFxMoviePlayerJournal {
+  DisGFxMoviePlayer base;
+  // ...
+};
+
+struct DisGFxMoviePlayerNote {
+  DisGFxMoviePlayer base;
+  // ...
+};
+
+struct DisGFxMoviePlayerMissionStats {
+  DisGFxMoviePlayer base;
+  // ...
+};
+
+struct DisGlobalUIManager {
+  void *vtable;
+  u8 unk04[0x2DC-0x4];
+  DisGFxMoviePlayerHUD *hud; // 0x2DC
+  DisGFxMoviePlayerPowerWheel *powerWheel; // 0x2E0
+  DisGFxMoviePlayerJournal *journal; // 0x2E4
+  DisGFxMoviePlayerNote *note; // 0x2E8
+  DisGFxMoviePlayerPauseMenu *pauseMenu; // 0x2EC
+  void *unk2F0;
+  DisGFxMoviePlayerMissionStats *missionStats; // 0x2F4
+  // ...
+};
+assert_size(DisGlobalUIManager, 0x2F8);
+
+struct DishonoredGameInfo {
+  void *vtable;
+  u8 unk04[0x41C-0x4];
+  DisGlobalUIManager *globalUIManager; // 0x41C
+  u8 unk420[0x14E0-0x420];
+  UString missionNames[21]; // 0x14E0
+  // ...
+};
+assert_size(DishonoredGameInfo, 0x15DC);
+
+struct WorldInfo {
+  void *vtable;
+  u8 unk04[0x410-0x4];
+  DishonoredGameInfo *gameInfo; // 0x410
+  // ...
+};
+assert_size(WorldInfo, 0x414);
+
+struct World {
+  void *vtable;
+  u8 unk04[0x2C0-0x4];
+  WorldInfo *worldInfo; // 0x2C0
+  // ...
+};
+assert_size(World, 0x2C4);
 
 /*struct UIObject {
   UString name;
@@ -158,14 +285,20 @@ assert_size(NoteContents, 0x1C);*/
 
 #pragma pack(pop)
 
-typedef void * (STDCALL _GetUnk10)();
-typedef void (THISCALL *_Unk10_ShowLocationDiscovery)(void *unk10, UString *text, int playSound);
-typedef void (THISCALL *_Unk10_ShowGameMessage)(void *unk10, UString *text, r32 duration);
+internal World** world = (World **)(0x0143D878);
+
+typedef DishonoredGameInfo * (THISCALL *_World_GetGameInfo)(World *);
+typedef DisGlobalUIManager * (CDECL _GetGlobalUIManager)();
+typedef DisGFxMoviePlayerHUD * (STDCALL _GetHUD)();
+typedef void (THISCALL *_DisGFxMoviePlayerHUD_ShowLocationDiscovery)(DisGFxMoviePlayerHUD *, UString *, int);
+typedef void (THISCALL *_DisGFxMoviePlayerHUD_ShowGameMessage)(DisGFxMoviePlayerHUD *, UString *, r32);
 //typedef void (THISCALL *_Unk20_ShowNote)(void *unk20, NoteContents *contents, int unk03);
 
-internal _GetUnk10 *GetUnk10 = (_GetUnk10 *)0x00BBF760;
-internal _Unk10_ShowLocationDiscovery Unk10_ShowLocationDiscovery = (_Unk10_ShowLocationDiscovery)0x00B94D60;
-internal _Unk10_ShowGameMessage Unk10_ShowGameMessage = (_Unk10_ShowGameMessage)0x00BAFFA0;
+internal _World_GetGameInfo World_GetGameInfo = (_World_GetGameInfo)(0x007816E0);
+internal _GetGlobalUIManager *GetGlobalUIManager = (_GetGlobalUIManager *)(0x00BBF730);
+internal _GetHUD *GetHUD = (_GetHUD *)0x00BBF760;
+internal _DisGFxMoviePlayerHUD_ShowLocationDiscovery DisGFxMoviePlayerHUD_ShowLocationDiscovery = (_DisGFxMoviePlayerHUD_ShowLocationDiscovery)0x00B94D60;
+internal _DisGFxMoviePlayerHUD_ShowGameMessage DisGFxMoviePlayerHUD_ShowGameMessage = (_DisGFxMoviePlayerHUD_ShowGameMessage)0x00BAFFA0;
 //internal _Unk20_ShowNote Unk20_ShowNote = (_Unk20_ShowNote)0x00BCC2B0;
 
 /*internal void * GetUnk20()
@@ -211,25 +344,21 @@ internal UString GetUString(wchar_t *text)
 
 internal void ShowLocationDiscovery(wchar_t *text, bool playSound)
 {
-  void *unk10 = GetUnk10();
+  DisGFxMoviePlayerHUD *hud = GetHUD();
   UString *str = &GetUString(text);
-  Unk10_ShowLocationDiscovery(unk10, str, playSound ? 1 : 0);
+  DisGFxMoviePlayerHUD_ShowLocationDiscovery(hud, str, playSound ? 1 : 0);
 }
 
 internal void ShowGameMessage(wchar_t *text, r32 duration)
 {
-  void *unk10 = GetUnk10();
+  DisGFxMoviePlayerHUD *hud = GetHUD();
   UString *str = &GetUString(text);
-  Unk10_ShowGameMessage(unk10, str, duration);
+  DisGFxMoviePlayerHUD_ShowGameMessage(hud, str, duration);
 }
 
-//INVESTIGATE(adm244): In release mode when msvc 2010 inlines this function
-// the return value overwrites unk parameter on a stack with itself,
-// but it happens only if this function returns float, all is fine when integer is returned
-// Possible compiler bug or am I missing something regarding calling-conventions?
-internal NOINLINE MissionStatEntry * GetMissionStatVariable(Unk01 *unk, int type)
+internal NOINLINE MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
 {
-  Array *missionStats = &unk->missionStats;
+  Array *missionStats = &playerPawn->missionStats;
   MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
   
   for (int i = 0; i < missionStats->length; ++i) {
@@ -330,10 +459,83 @@ struct SetPauseMenuFunc : FunctionHandler {
   }
 };
 
+struct UObject;
+
+struct UClass {
+  void *vtable;
+  u8 unk04[0x24-0x4];
+  UObject *package; // 0x24
+  u8 unk28[0x44-0x28];
+  UClass *classWithin; // 0x44
+  u8 unk48[0x130-0x48];
+  UString name; // 0x130
+  UObject *defaultObject; // 0x13C
+  u8 unk140[0x1B4-0x140];
+};
+assert_size(UClass, 0x1B4);
+
+struct UObject {
+  void *vtable;
+  u32 unk04;
+  u32 flags; // 0x8
+  u32 unk0C;
+  u32 unk10;
+  u32 unk14;
+  u32 unk18;
+  u32 unk1C;
+  u32 unk20;
+  u32 unk24;
+  u32 uniqueId; // 0x28
+  u32 unk2C;
+  UClass *classPtr; // 0x30
+  u32 unk34;
+};
+assert_size(UObject, 0x38);
+
+struct DisTweaks_MissionStats {
+  void *vtable;
+};
+
+typedef int (THISCALL *_DisGFxMoviePlayerMissionStats_Show)(DisGFxMoviePlayerMissionStats *, DisTweaks_MissionStats *, int);
+internal _DisGFxMoviePlayerMissionStats_Show DisGFxMoviePlayerMissionStats_Show = (_DisGFxMoviePlayerMissionStats_Show)(0x00BD3A60);
+
+typedef UObject * (CDECL _NewObject)(UClass *classPtr, UObject *package, int uniqueId, int, int, int, UObject *defaultObject, int, int, int);
+internal _NewObject *NewObject = (_NewObject *)(0x00494C80);
+
+typedef UObject * (THISCALL *_UClass_GetDefaultObject)(UClass *, int);
+internal _UClass_GetDefaultObject UClass_GetDefaultObject = (_UClass_GetDefaultObject)(0x004967F0);
+
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
   {
-    GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
+    //GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
+    
+    //DishonoredGameInfo *gameInfo = World_GetGameInfo(*world);
+    //DisGlobalUIManager *globalUIManager = gameInfo->globalUIManager;
+    DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
+    DisGFxMoviePlayerMissionStats *missionStats = globalUIManager->missionStats;
+    
+    //NOTE(adm244): since Start() assumes that DisTweaks_MissionStats is initialized
+    // we have to call DisGFxMoviePlayerMissionStats::Show instead
+    //missionStats->base.vtable->Start((DisGFxMoviePlayer *)missionStats, 0);
+    
+    UClass *classMissionStats = *(UClass **)(0x01451028);
+    UObject *objectMissionStats = UClass_GetDefaultObject(classMissionStats, 0);
+    
+    //FIX(adm244): get real uniqueId
+    DisTweaks_MissionStats *tweaksMissionStats = (DisTweaks_MissionStats *)
+      NewObject(classMissionStats, classMissionStats->package, 0xBEEF0000,
+        0, 0, 0, objectMissionStats, 0, 0, 0);
+    
+    //TODO(adm244): fill stats data:
+    // Mission Stats
+    // Mission Stats Max
+    // Special Actions
+    // Mission Number
+    // DLC Number
+    // Background Image
+    
+    DisGFxMoviePlayerMissionStats_Show(missionStats, tweaksMissionStats, 1);
   }
 };
 
@@ -350,7 +552,7 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   GFxValue SetPauseMenu_func;
   GFxValue OnMissionStatsClicked_func;
   
-  GFxMovie *gfxPauseMenu = pauseMenuMoviePlayer->disMovie->movie;
+  GFxMovie *gfxPauseMenu = pauseMenuMoviePlayer->base.disMovie->movie;
   if (!GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
     return;
   
@@ -430,9 +632,9 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
 //  result = GFxValue_Invoke(&_menu_mc, &invokeResult, "SetMenu", &_menuContentArray, 1);
 //}
 
-internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
+internal bool CDECL ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
 {
-  MissionStatEntry *stat = GetMissionStatVariable(unk, type);
+  MissionStatEntry *stat = GetMissionStatVariable(playerPawn, type);
   
   switch (type) {
     case MissionStat_DetectedTimes: {
@@ -443,8 +645,8 @@ internal bool CDECL ModifyStatVariable(Unk01 *unk, int type, r32 amount)
     
     case MissionStat_HostilesKilled:
     case MissionStat_CiviliansKilled: {
-      MissionStatEntry *hostilesStat = GetMissionStatVariable(unk, MissionStat_HostilesKilled);
-      MissionStatEntry *civiliansStat = GetMissionStatVariable(unk, MissionStat_CiviliansKilled);
+      MissionStatEntry *hostilesStat = GetMissionStatVariable(playerPawn, MissionStat_HostilesKilled);
+      MissionStatEntry *civiliansStat = GetMissionStatVariable(playerPawn, MissionStat_CiviliansKilled);
       
       if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
         ShowLocationDiscovery(L"You've killed somebody", false);
