@@ -508,34 +508,36 @@ internal _UClass_GetDefaultObject UClass_GetDefaultObject = (_UClass_GetDefaultO
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
   {
-    //GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
+    //NOTE(adm244): just for now...
+    GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
     
     //DishonoredGameInfo *gameInfo = World_GetGameInfo(*world);
     //DisGlobalUIManager *globalUIManager = gameInfo->globalUIManager;
     DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
     DisGFxMoviePlayerMissionStats *missionStats = globalUIManager->missionStats;
     
-    //NOTE(adm244): since Start() assumes that DisTweaks_MissionStats is initialized
-    // we have to call DisGFxMoviePlayerMissionStats::Show instead
-    //missionStats->base.vtable->Start((DisGFxMoviePlayer *)missionStats, 0);
+    //NOTE(adm244): DisTweaks_MissionStats doesn't have actual stats data
+    // instead, it is used as a template to construct mission stats screen
+    // real data is stored in ArkProfileSettings, but it is set only through
+    // ArkProfileSettings::SetMissionStats().
+    //
+    // In short, we have to get "current mission number", "current dlc number",
+    // then retrieve proper DisTweaks_MissionStats for current mission and use it
+    // to build two things: "mission stats array (TArray)" and "special actions flags (u16)"
+    // pass those into ArkProfileSettings::SetMissionStats() and finally call
+    // DisGFxMoviePlayerMissionStats::Show().
     
-    UClass *classMissionStats = *(UClass **)(0x01451028);
-    UObject *objectMissionStats = UClass_GetDefaultObject(classMissionStats, 0);
+    //TODO(adm244): things to make mission stats button work:
+    // 1) Get DisTweaks_MissionStats for current mission
+    //    figure out how to get current mission index
+    // 2) Use ArkProfileSettings::SetMissionStats() to set mission stats values
+    //    here we have to recreate DisSeqAct_MissionStatsTracking::StoreMissionStats() logic
+    // 3) Call DisGFxMoviePlayerMissionStats::Show()
+    // 
+    // Also, we have to modify behavior at mission stats exit,
+    // so it returns to pause menu correctly...
     
-    //FIX(adm244): get real uniqueId
-    DisTweaks_MissionStats *tweaksMissionStats = (DisTweaks_MissionStats *)
-      NewObject(classMissionStats, classMissionStats->package, 0xBEEF0000,
-        0, 0, 0, objectMissionStats, 0, 0, 0);
-    
-    //TODO(adm244): fill stats data:
-    // Mission Stats
-    // Mission Stats Max
-    // Special Actions
-    // Mission Number
-    // DLC Number
-    // Background Image
-    
-    DisGFxMoviePlayerMissionStats_Show(missionStats, tweaksMissionStats, 1);
+    //DisGFxMoviePlayerMissionStats_Show(missionStats, tweaksMissionStats, 1);
   }
 };
 
