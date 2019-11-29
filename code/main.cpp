@@ -57,6 +57,10 @@ internal bool Initialize()
     return false;
   }
   
+  if (!WriteDetour((void *)0x00A0DD50, DisTweaks_MissionStats_Constructor_Hook, 2)) {
+    return false;
+  }
+  
   /*if (!WriteDetour((void *)0x00BCCEDB, ShowPauseMenuPost_Hook, 1)) {
     return false;
   }*/

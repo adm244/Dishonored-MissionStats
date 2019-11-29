@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 internal void *modify_stat_variable_hook_ret = (void *)0x00AA94A5;
 internal void *showpausemenu_hook_ret = (void *)0x00BCCCA5;
 //internal void *showpausemenupost_hook_ret = (void *)0x00BCCEE1;
+internal void *tweaks_missionstats_constructor_ret = (void *)0x00A0DD57;
 
 internal void NAKED ModifyStatVariable_Hook()
 {
@@ -74,6 +75,22 @@ internal void NAKED ShowPauseMenu_Hook()
     push 0FFFFFFFFh
     
     jmp [showpausemenu_hook_ret]
+  }
+}
+
+internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
+{
+  __asm {
+    push [esp+04h]
+    call DisTweaks_MissionStats_Constructor
+    pop eax
+    
+    push ebp
+    mov ebp, esp
+    push esi
+    mov esi, [ebp+08h]
+    
+    jmp [tweaks_missionstats_constructor_ret]
   }
 }
 
