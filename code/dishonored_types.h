@@ -141,6 +141,33 @@ struct DishonoredPlayerPawn {
   // ...
 };
 
+struct ArkProfileSettings {
+  void *vtable;
+  // ...
+};
+
+struct UIDataStore_OnlinePlayerData {
+  void *vtable;
+  // ...
+};
+
+struct DishonoredPlayerController;
+
+typedef ArkProfileSettings * (THISCALL *_DishonoredPlayerController_GetProfileSettings)(DishonoredPlayerController *);
+
+struct DishonoredPlayerControllerVTable {
+  u8 unk00[0x590-0x0];
+  _DishonoredPlayerController_GetProfileSettings GetProfileSettings; // 0x590
+  // ...
+};
+
+struct DishonoredPlayerController {
+  DishonoredPlayerControllerVTable *vtable;
+  u8 unk04[0x49C-0x4];
+  UIDataStore_OnlinePlayerData *onlinePlayerData; // 0x49C
+  // ...
+};
+
 struct DisGFxMoviePlayer;
 
 struct DisGFxMovie {
@@ -279,11 +306,55 @@ struct DisTweaks_MissionStats {
   u32 missionNumber; // 0x8C
   u32 dlcNumber; // 0x90
   UArray specialActions; // 0x94
-  UArray statValues; // 0xA0
+  UArray statsValues; // 0xA0
   UArray statsMaxValues; // 0xAC
   UString bgImageName; // 0xB8
 };
 assert_size(DisTweaks_MissionStats, 0xC4);
+
+struct DisStoryFlagSet {
+  void *vtable;
+  u8 unk04[0x38-0x4];
+  UArray flagSets; // 0x38
+  u32 unk44;
+  u32 unk48;
+  u32 unk4C;
+};
+assert_size(DisStoryFlagSet, 0x50);
+
+struct DisSpecialActionFlagSet {
+  u32 unk00;
+  u32 unk04;
+  u32 unk08;
+  u32 unk0C;
+  u32 unk10;
+};
+assert_size(DisSpecialActionFlagSet, 0x14);
+
+struct StoryFlagSet {
+  u32 unk00;
+  u32 unk04;
+  DisSpecialActionFlagSet flagSet; // 0x8
+};
+assert_size(StoryFlagSet, 0x1C);
+
+struct DisSpecialAction {
+  UString name;
+  DisStoryFlagSet *storyFlagSet; // 0xC
+  DisSpecialActionFlagSet flagSet; // 0x10
+};
+assert_size(DisSpecialAction, 0x24);
+
+struct StatValueTemplate {
+  UString statName;
+  u8 type1; // 0xC
+  u32 checkType1; // 0x10
+  u8 type2; // 0x14
+  
+  //TODO(adm244): are we sure about this one?
+  u32 checkType2; // 0x18
+};
+assert_size(StatValueTemplate, 0x1C);
 
 /*struct UIObject {
   UString name;
@@ -312,7 +383,9 @@ assert_size(NoteContents, 0x1C);*/
 
 #pragma pack(pop)
 
-internal DishonoredEngine **dishonoredEngine = (DishonoredEngine **)0x0143B20C;
+internal DishonoredEngine **dishonoredEngine = (DishonoredEngine **)(0x0143B20C);
+internal DishonoredPlayerController **playerController = (DishonoredPlayerController **)(0x01452DD4);
+internal DishonoredPlayerPawn **playerPawn = (DishonoredPlayerPawn **)(0x01452DE8);
 internal World **world = (World **)(0x0143D878);
 
 typedef DishonoredGameInfo * (THISCALL *_World_GetGameInfo)(World *);
@@ -324,6 +397,12 @@ typedef void (THISCALL *_DisGFxMoviePlayerHUD_ShowGameMessage)(DisGFxMoviePlayer
 typedef int (THISCALL *_DisGFxMoviePlayerMissionStats_Show)(DisGFxMoviePlayerMissionStats *, DisTweaks_MissionStats *, int);
 typedef UObject * (THISCALL *_UClass_GetDefaultObject)(UClass *, int);
 typedef UObject * (CDECL _NewObject)(UClass *classPtr, UObject *package, int uniqueId, int, int, int, UObject *defaultObject, int, int, int);
+typedef StoryFlagSet * (THISCALL *_DisStoryFlagSet_GetStoryFlagSet)(DisStoryFlagSet *, DisSpecialActionFlagSet *);
+typedef bool (THISCALL *_DishonoredPlayerPawn_HasCompleteAction)(DishonoredPlayerPawn *, DisStoryFlagSet *, DisSpecialActionFlagSet *);
+typedef int * (THISCALL *_DishonoredPlayerPawn_GetStatsValue)(DishonoredPlayerPawn *, int, float *, int *);
+typedef bool (CDECL _IsDLC06)();
+typedef bool (CDECL _IsDLC07)();
+typedef void (THISCALL *_ArkProfileSettings_SetMissionStats)(ArkProfileSettings *, int, int, u16, r32 *, int);
 
 internal _World_GetGameInfo World_GetGameInfo = (_World_GetGameInfo)(0x007816E0);
 internal _GetGlobalUIManager *GetGlobalUIManager = (_GetGlobalUIManager *)(0x00BBF730);
@@ -334,5 +413,11 @@ internal _DisGFxMoviePlayerHUD_ShowGameMessage DisGFxMoviePlayerHUD_ShowGameMess
 internal _DisGFxMoviePlayerMissionStats_Show DisGFxMoviePlayerMissionStats_Show = (_DisGFxMoviePlayerMissionStats_Show)(0x00BD3A60);
 internal _NewObject *NewObject = (_NewObject *)(0x00494C80);
 internal _UClass_GetDefaultObject UClass_GetDefaultObject = (_UClass_GetDefaultObject)(0x004967F0);
+internal _DisStoryFlagSet_GetStoryFlagSet DisStoryFlagSet_GetStoryFlagSet = (_DisStoryFlagSet_GetStoryFlagSet)(0x00C04640);
+internal _DishonoredPlayerPawn_HasCompleteAction DishonoredPlayerPawn_HasCompleteAction = (_DishonoredPlayerPawn_HasCompleteAction)(0x00AB1100);
+internal _DishonoredPlayerPawn_GetStatsValue DishonoredPlayerPawn_GetStatsValue = (_DishonoredPlayerPawn_GetStatsValue)(0x00AA93C0);
+internal _IsDLC06 *IsDLC06 = (_IsDLC06 *)(0x00BBF1D0);
+internal _IsDLC07 *IsDLC07 = (_IsDLC07 *)(0x00BBF270);
+internal _ArkProfileSettings_SetMissionStats ArkProfileSettings_SetMissionStats = (_ArkProfileSettings_SetMissionStats)(0x00938210);
 
 #endif

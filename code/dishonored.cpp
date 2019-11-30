@@ -294,9 +294,104 @@ internal DisTweaks_MissionStats * GetMissionStatsTweaks(i32 missionNumber)
   return 0;
 }
 
+internal bool UArray_InRange(UArray *arr, int upper)
+{
+  if ((arr->length < 0) || (arr->length > upper))
+    return false;
+  
+  return true;
+}
+
+internal u16 GetSpecialActionsFlags(DisTweaks_MissionStats *tweaks)
+{
+  u16 flags = 0;
+  
+  for (int i = 0; i < tweaks->specialActions.length; ++i) {
+    DisSpecialAction *specialActions = (DisSpecialAction *)tweaks->specialActions.data;
+    DisStoryFlagSet *flagSet = specialActions[i].storyFlagSet;
+    DisSpecialActionFlagSet *specialActionFlagSet = &specialActions[i].flagSet;
+    
+    if (!flagSet)
+      continue;
+    
+    if (!specialActionFlagSet)
+      continue;
+    
+    if (!DisStoryFlagSet_GetStoryFlagSet(flagSet, specialActionFlagSet))
+      continue;
+    
+    if (!DishonoredPlayerPawn_HasCompleteAction(*playerPawn, flagSet, specialActionFlagSet))
+      continue;
+    
+    flags |= (1 << i);
+  }
+  
+  return flags;
+}
+
+internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, int size)
+{
+  if (size < tweaks->statsValues.length)
+    return false;
+  
+  for (int i = 0; i < tweaks->statsValues.length; ++i) {
+    StatValueTemplate *templates = (StatValueTemplate *)tweaks->statsValues.data;
+    float currentValue = 0.0f;
+    int maxValue = 0;
+    
+    DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type1, &currentValue, &maxValue);
+    
+    if (templates[i].checkType1) {
+      float currentValue2 = 0.0f;
+      int maxValue2 = 0;
+      
+      DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type2, &currentValue2, &maxValue2);
+      
+      currentValue += currentValue2;
+    }
+    
+    if (templates[i].type1 == MissionStat_OverallChaos) {
+      //TODO(adm244): get chaos threshold and current value
+      currentValue = 0.0f;
+    }
+    
+    buffer[i] = currentValue;
+  }
+  
+  return true;
+}
+
+internal i32 GetMissionIndex(i32 missionNumber)
+{
+  //NOTE(adm244): DisTweaks_MissionStats has dlcNumber, why we're doing this?
+  if (IsDLC06()) {
+    missionNumber += 9;
+  } else if (IsDLC07()) {
+    missionNumber += 12;
+  }
+  
+  return missionNumber;
+}
+
 internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
 {
-  //TODO(adm244): reimplement DisSeqAct_MissionStatsTracking::StoreMissionStats
+  if (!UArray_InRange(&tweaks->specialActions, 16))
+    return false;
+  
+  //NOTE(adm244): buffer is limited to hold only 16 stat values...
+  if (!UArray_InRange(&tweaks->statsValues, 16))
+    return false;
+  
+  r32 statsValuesBuffer[16];
+  u16 specialActionsFlags = GetSpecialActionsFlags(tweaks);
+  if (!GetStatsValuesBuffer(tweaks, statsValuesBuffer, 16))
+    return false;
+  
+  i32 missionIndex = GetMissionIndex(tweaks->missionNumber);
+  
+  ArkProfileSettings *profileSettings = (*playerController)->vtable->GetProfileSettings(*playerController);
+  ArkProfileSettings_SetMissionStats(profileSettings, missionIndex, tweaks->dlcNumber, specialActionsFlags, statsValuesBuffer, tweaks->statsValues.length);
+  
   return true;
 }
 
