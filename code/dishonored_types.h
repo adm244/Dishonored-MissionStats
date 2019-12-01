@@ -135,11 +135,23 @@ struct MissionStatEntry {
 };
 assert_size(MissionStatEntry, 0xC);
 
-struct DishonoredPlayerPawn {
-  u8 unk0[0xB7C-0x0];
-  UArray missionStats; // 0xB7C
-  // ...
+struct DisDarknessManager {
+  UObject object;
+  u32 chaosLevel; // 0x38
+  u32 unk3C;
+  u32 unk40;
+  u32 unk44;
 };
+assert_size(DisDarknessManager, 0x48);
+
+struct DishonoredPlayerPawn {
+  u8 unk0[0xA94-0x0];
+  DisDarknessManager *darknessManager; // 0xA94
+  u8 unkA98[0xB7C-0xA98];
+  UArray missionStats; // 0xB7C
+  u8 unkB88[0x1250-0xB88];
+};
+assert_size(DishonoredPlayerPawn, 0x1250);
 
 struct ArkProfileSettings {
   void *vtable;
@@ -403,6 +415,7 @@ typedef int * (THISCALL *_DishonoredPlayerPawn_GetStatsValue)(DishonoredPlayerPa
 typedef bool (CDECL _IsDLC06)();
 typedef bool (CDECL _IsDLC07)();
 typedef void (THISCALL *_ArkProfileSettings_SetMissionStats)(ArkProfileSettings *, int, int, u16, r32 *, int);
+typedef int (THISCALL *_DisDarknessManager_GetChaosTresholdIndex)(DisDarknessManager *);
 
 internal _World_GetGameInfo World_GetGameInfo = (_World_GetGameInfo)(0x007816E0);
 internal _GetGlobalUIManager *GetGlobalUIManager = (_GetGlobalUIManager *)(0x00BBF730);
@@ -419,5 +432,6 @@ internal _DishonoredPlayerPawn_GetStatsValue DishonoredPlayerPawn_GetStatsValue 
 internal _IsDLC06 *IsDLC06 = (_IsDLC06 *)(0x00BBF1D0);
 internal _IsDLC07 *IsDLC07 = (_IsDLC07 *)(0x00BBF270);
 internal _ArkProfileSettings_SetMissionStats ArkProfileSettings_SetMissionStats = (_ArkProfileSettings_SetMissionStats)(0x00938210);
+internal _DisDarknessManager_GetChaosTresholdIndex DisDarknessManager_GetChaosTresholdIndex = (_DisDarknessManager_GetChaosTresholdIndex)(0x00C47FF0);
 
 #endif

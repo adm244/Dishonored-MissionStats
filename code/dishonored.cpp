@@ -351,8 +351,20 @@ internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, 
     }
     
     if (templates[i].type1 == MissionStat_OverallChaos) {
-      //TODO(adm244): get chaos threshold and current value
-      currentValue = 0.0f;
+      DisDarknessManager *darknessManager = (*playerPawn)->darknessManager;
+      int index = DisDarknessManager_GetChaosTresholdIndex(darknessManager);
+      
+      //TODO(adm244): check if it's mission number or index
+      int missionNumber = (tweaks->missionNumber + 1);
+      
+      //NOTE(adm244): could be a bug, since all the rest of missions obey the rule above
+      if (missionNumber == 9)
+        missionNumber = 8;
+      
+      if (index < missionNumber)
+        currentValue = 0.0f; // low chaos
+      else
+        currentValue = 1.0f; // high chaos
     }
     
     buffer[i] = currentValue;
@@ -378,7 +390,6 @@ internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
   if (!UArray_InRange(&tweaks->specialActions, 16))
     return false;
   
-  //NOTE(adm244): buffer is limited to hold only 16 stat values...
   if (!UArray_InRange(&tweaks->statsValues, 16))
     return false;
   
@@ -401,31 +412,8 @@ struct OnMissionStatsClickedFunc : FunctionHandler {
     //NOTE(adm244): just for now...
     GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
     
-    //DishonoredGameInfo *gameInfo = World_GetGameInfo(*world);
-    //DisGlobalUIManager *globalUIManager = gameInfo->globalUIManager;
     DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
     DisGFxMoviePlayerMissionStats *missionStats = globalUIManager->missionStats;
-    
-    //NOTE(adm244): DisTweaks_MissionStats doesn't have actual stats data
-    // instead, it is used as a template to construct mission stats screen
-    // real data is stored in ArkProfileSettings, but it is set only through
-    // ArkProfileSettings::SetMissionStats().
-    //
-    // In short, we have to get "current mission number", "current dlc number",
-    // then retrieve proper DisTweaks_MissionStats for current mission and use it
-    // to build two things: "mission stats array (TArray)" and "special actions flags (u16)"
-    // pass those into ArkProfileSettings::SetMissionStats() and finally call
-    // DisGFxMoviePlayerMissionStats::Show().
-    
-    //TODO(adm244): things to make mission stats button work:
-    // 1) Get DisTweaks_MissionStats for current mission
-    //    figure out how to get current mission index
-    // 2) Use ArkProfileSettings::SetMissionStats() to set mission stats values
-    //    here we have to recreate DisSeqAct_MissionStatsTracking::StoreMissionStats() logic
-    // 3) Call DisGFxMoviePlayerMissionStats::Show()
-    // 
-    // Also, we have to modify behavior at mission stats exit,
-    // so it returns to pause menu correctly...
     
     i32 missionNumber = GetMissionNumber();
     DisTweaks_MissionStats *tweaks = GetMissionStatsTweaks(missionNumber);
@@ -474,60 +462,6 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   if (!GFxValue_SetMember(&pauseMenu_mc, "SetPauseMenu", &SetPauseMenu_func))
     return;
 }
-
-//internal void CDECL ShowPauseMenuPost(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
-//{
-//  /*
-//    DisGFxMoviePlayerPauseMenu -> UI_struct (at 0x38) -> GFxMovie (at 0x34)
-//    
-//    GetVariable() returns a GFXValue that contains an ArrayObject (scaleform object)
-//  */
-//  
-//  //TODO(adm244): while stuff below works perfectly fine, we have to replace a call to
-//  // "SetPauseMenu" entirely in order to display any changes without any issues
-//  
-//  //GFxValue value = {0};
-//  GFxValue _menuContent[10] = {0};
-//  char *pathToVar = "_root.pauseMenu_mc._menu_mc._menuContent";
-//  
-//  GFxMovie *movie = pauseMenuMoviePlayer->disMovie->movie;
-//  //bool result = movie->vtable->GetVariable(movie, &value, pathToVar);
-//  
-//  uint length = movie->vtable->GetVariableArraySize(movie, pathToVar);
-//  bool result = movie->vtable->GetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length);
-//  
-//  for (int i = 0; i < length; ++i) {
-//    GFxValue txtField = {0};
-//    GFxValue callbackField = {0};
-//    GFxValue lockStateField = {0};
-//    
-//    bool result = false;
-//    result = GFxValue_GetMember(&_menuContent[i], "txt", &txtField);
-//    result = GFxValue_GetMember(&_menuContent[i], "callback", &callbackField);
-//    result = GFxValue_GetMember(&_menuContent[i], "lockState", &lockStateField);
-//    
-//    wchar_t buffer[100];
-//    swprintf(buffer, 100, L"Button %d", (i + 1));
-//    GFxValue_SetStringW(&txtField, buffer);
-//    
-//    GFxValue_SetBoolean(&lockStateField, (i % 2) ? true : false);
-//    
-//    result = GFxValue_SetMember(&_menuContent[i], "txt", &txtField);
-//    result = GFxValue_SetMember(&_menuContent[i], "callback", &callbackField);
-//    result = GFxValue_SetMember(&_menuContent[i], "lockState", &lockStateField);
-//  }
-//  
-//  result = movie->vtable->SetVariableArray(movie, SA_Value, pathToVar, 0, _menuContent, length, SV_Sticky);
-//  
-//  GFxValue _menuContentArray = {0};
-//  result = movie->vtable->GetVariable(movie, &_menuContentArray, pathToVar);
-//  
-//  GFxValue _menu_mc = {0};
-//  result = movie->vtable->GetVariable(movie, &_menu_mc, "_root.pauseMenu_mc._menu_mc");
-//  
-//  GFxValue invokeResult = {0};
-//  result = GFxValue_Invoke(&_menu_mc, &invokeResult, "SetMenu", &_menuContentArray, 1);
-//}
 
 internal bool CDECL ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
 {
