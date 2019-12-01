@@ -25,168 +25,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 //IMPORTANT(adm244): SCRATCH VERSION JUST TO GET IT UP WORKING
 
-/*
-  FIX(adm244): rename UArray to TArray
-  FIX(adm244): rename UString to FName
-*/
+#ifndef _PATCH_MISSIONSTATS_BUTTON_CPP_
+#define _PATCH_MISSIONSTATS_BUTTON_CPP_
 
-/*
-  Get Dishonored mission stats:
-    1) Get an object at [0x1452DE8] (DishonoredPlayerPawn)
-    2) Get an array of mission stats at [0xB7C]
-  
-  MissionStatEntry:
-    [0x00] Type (1 byte)
-    [0x04] Current Value (4 bytes, float)
-    [0x08] Maximum Value (4 bytes, int)
-  
-  MissionStatTypes:
-    AlarmsRung = 0x03,
-    BodiesFound = 0x04,
-    DetectedTimes = 0x0A, // ghost
-    OverallChaos = 0x1B,
-    HostilesKilled = 0x1C,
-    CiviliansKilled = 0x1E,
-    CoinsFound = 0x21,
-    RunesFound = 0x22,
-    BoneCharmsFound = 0x23,
-    OutsiderShrinesFound = 0x24,
-    SokolovPaintingsFound = 0x25,
-*/
-
-/*
-  Get DisGFxMoviePlayerNote to use ShowNote function:
-    1) Get UIManager at [0x0144CF44]
-    2) Get array of DisGFxMovie's at [0x10]
-      // this list keeps all preloaded DisGFxMovie's
-      // so, we have to load it somehow before we can use it :sad_face:
-    3) Get Notes DisGFxMovie at [0x8] (assuming it's always in a same place)
-    4) (optional) Check that value is not 0 at [0x48]
-    5) Get DisGFxMoviePlayer object at [0x5C]
-  
-  DisGFxMoviePlayer contains NotesContents
-*/
-
-/*
-  DisGFxMoviePlayer
-    ...
-    [0x180] UString name
-    ...
-  
-  World object
-    - WorldInfo object
-      - DishonoredGameInfo object
-        - GlobalUIManager object
-          ...
-          [0x2DC] DisGFxMoviePlayerHUD (a.k.a. Unk10)
-          [0x2E0] DisGFxMoviePlayerPowerWheel
-          [0x2E4] DisGFxMoviePlayerJournal
-          [0x2E8] DisGFxMoviePlayerNote
-          [0x2EC] DisGFxMoviePlayerPauseMenu
-          [0x2F0] ???
-          [0x2F4] DisGFxMoviePlayerMissionStats
-          ...
-*/
-
-/*
-  DisTweaks_MissionStats creation:
-    1) Get DisTweak_MissionStats class at [0x01451028]
-    2) Call UClass::GetDefaultObject(this, 0) at [0x004967F0]
-      or just get it directly at [0x13C]
-    3) TODO(adm244): Initialize it with stuff...
-    
-    0x1BD, 0x1BE - DisTweak_MissionStats export index ???
-*/
-
-/*
-  Getting current mission number:
-    1) Get DishonoredEngine object at [0x0143B20C]
-    2) Get DishonoredEngineUnk01 at [0x7BC]
-    3) Get current mission number at [0x80]
-*/
-
-#ifndef _DISHONORED_CPP_
-#define _DISHONORED_CPP_
-
-#include "dishonored_types.h"
-
-internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
-internal uint g_MissionStatsTweaksCount = 0;
-
-/*internal void * GetUnk20()
-{
-  Unk20_1 *unk20_1 = *(Unk20_1 **)0x0144CF44;
-  if (!unk20_1)
-    return 0;
-  
-  UArray *array = &unk20_1->uiObjects;
-  if (array->length < 3)
-    return 0;
-  
-  UIObject **uiObjects = (UIObject **)array->data;
-  if (!uiObjects)
-    return 0;
-  
-  UIObject *uiNotes = uiObjects[2];
-  if (uiNotes && uiNotes->flags)
-    return uiNotes->unk20;
-  
-  return 0;
-}*/
-
-internal UString GetUString(wchar_t *text)
-{
-  UString str = {0};
-  str.text = text;
-  str.length = wcslen(text) + 1;
-  str.capacity = str.length;
-  
-  return str;
-}
-
-/*internal NoteContents GetNoteContents(UString *title, UString *text)
-{
-  NoteContents note = {0};
-  note.vtable = (void *)0x010DEFB8;
-  note.title = *title;
-  note.text = *text;
-  
-  return note;
-}*/
-
-internal i32 GetMissionNumber()
-{
-  return (*dishonoredEngine)->unk01->missionNumber;
-}
-
-internal void ShowLocationDiscovery(wchar_t *text, bool playSound)
-{
-  DisGFxMoviePlayerHUD *hud = GetHUD();
-  UString *str = &GetUString(text);
-  DisGFxMoviePlayerHUD_ShowLocationDiscovery(hud, str, playSound ? 1 : 0);
-}
-
-internal void ShowGameMessage(wchar_t *text, r32 duration)
-{
-  DisGFxMoviePlayerHUD *hud = GetHUD();
-  UString *str = &GetUString(text);
-  DisGFxMoviePlayerHUD_ShowGameMessage(hud, str, duration);
-}
-
-internal NOINLINE MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
-{
-  UArray *missionStats = &playerPawn->missionStats;
-  MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
-  
-  for (int i = 0; i < missionStats->length; ++i) {
-    if (missionStatEntries[i].type == (u8)type) {
-      return &missionStatEntries[i];
-    }
-  }
-  
-  OutputDebugStringA("GetMissionStatVariable: Couldn't find a specified mission stat.");
-  return 0;
-}
+struct SetPauseMenuFunc;
+struct OnMissionStatsClickedFunc;
 
 enum ButtonLockState {
   LockState_None,
@@ -202,7 +45,14 @@ struct ButtonsData {
   ButtonLockState state;
 };
 
-ButtonsData data[] = {
+//------------- Static variables -------------//
+internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
+internal uint g_MissionStatsTweaksCount = 0;
+
+internal SetPauseMenuFunc *SetPauseMenu = 0;
+internal OnMissionStatsClickedFunc *OnMissionStatsClicked = 0;
+
+internal ButtonsData data[] = {
   {"_root.texts.t_ResumeGame", "OnResumeClicked", LockState_None},
   {"_root.texts.t_SaveGame", "OnSaveGameClicked", LockState_SaveGame},
   {"_root.texts.t_LoadGamePauseMenu", "OnLoadGameClicked", LockState_LoadGame},
@@ -213,6 +63,7 @@ ButtonsData data[] = {
   {"_root.texts.t_BackToWindows", "OnBackToWindowsClicked", LockState_None},
 };
 
+//------------- Functions -------------//
 struct SetPauseMenuFunc : FunctionHandler {
   void Call(Params *params)
   {
@@ -294,14 +145,6 @@ internal DisTweaks_MissionStats * GetMissionStatsTweaks(i32 missionNumber)
   return 0;
 }
 
-internal bool UArray_InRange(UArray *arr, int upper)
-{
-  if ((arr->length < 0) || (arr->length > upper))
-    return false;
-  
-  return true;
-}
-
 internal u16 GetSpecialActionsFlags(DisTweaks_MissionStats *tweaks)
 {
   u16 flags = 0;
@@ -373,18 +216,6 @@ internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, 
   return true;
 }
 
-internal i32 GetMissionIndex(i32 missionNumber)
-{
-  //NOTE(adm244): DisTweaks_MissionStats has dlcNumber, why we're doing this?
-  if (IsDLC06()) {
-    missionNumber += 9;
-  } else if (IsDLC07()) {
-    missionNumber += 12;
-  }
-  
-  return missionNumber;
-}
-
 internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
 {
   if (!UArray_InRange(&tweaks->specialActions, 16))
@@ -409,7 +240,7 @@ internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
   {
-    //NOTE(adm244): just for now...
+    //FIX(adm244): just for now...
     GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
     
     DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
@@ -424,10 +255,7 @@ struct OnMissionStatsClickedFunc : FunctionHandler {
   }
 };
 
-internal SetPauseMenuFunc SetPauseMenu;
-//internal OnMissionStatsClickedFunc OnMissionStatsClicked;
-internal OnMissionStatsClickedFunc *OnMissionStatsClicked = 0;
-
+//------------- Detours -------------//
 internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
 {
   if (pauseMenuMoviePlayer->mode == PauseMenuMode_GameOver)
@@ -452,58 +280,16 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   //
   // Nonetheless, good thing I've checked what the actual problem was,
   // never would've thought that the issue lies in garbage being stored in a vtable...
+  SetPauseMenu = new SetPauseMenuFunc();
   OnMissionStatsClicked = new OnMissionStatsClickedFunc();
   
   GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, OnMissionStatsClicked, 0);
   if (!GFxValue_SetMember(&pauseMenu_mc, "OnMissionStatsClicked", &OnMissionStatsClicked_func))
     return;
   
-  GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, &SetPauseMenu, 0);
+  GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, SetPauseMenu, 0);
   if (!GFxValue_SetMember(&pauseMenu_mc, "SetPauseMenu", &SetPauseMenu_func))
     return;
-}
-
-internal bool CDECL ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
-{
-  MissionStatEntry *stat = GetMissionStatVariable(playerPawn, type);
-  
-  switch (type) {
-    case MissionStat_DetectedTimes: {
-      if ((!stat->value) && (amount > 0.0f)) {
-        ShowLocationDiscovery(L"You've been spotted", false);
-      }
-    } break;
-    
-    case MissionStat_HostilesKilled:
-    case MissionStat_CiviliansKilled: {
-      MissionStatEntry *hostilesStat = GetMissionStatVariable(playerPawn, MissionStat_HostilesKilled);
-      MissionStatEntry *civiliansStat = GetMissionStatVariable(playerPawn, MissionStat_CiviliansKilled);
-      
-      if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
-        ShowLocationDiscovery(L"You've killed somebody", false);
-      }
-    } break;
-    
-    case MissionStat_CoinsFound: {
-      wchar_t buffer[255];
-      swprintf(buffer, 255, L"Collected %g of %d coins", stat->value + amount, stat->maxValue);
-      
-      ShowGameMessage(buffer, 2.f);
-      
-      /*UString *title = &GetUString(L"Coins collected");
-      UString *text = &GetUString(buffer);
-      NoteContents *note = &GetNoteContents(title, text);
-      
-      //TODO(adm244): figure out how to preload UI_NOTES gfx
-      void *unk20 = GetUnk20();
-      Unk20_ShowNote(unk20, note, 0);*/
-    } break;
-    
-    default:
-      break;
-  }
-  
-  return true;
 }
 
 internal void CDECL DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *missionStats)
@@ -513,6 +299,52 @@ internal void CDECL DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *m
     g_MissionStatsTweaksCount = 0;
   
   g_MissionStatsTweaks[g_MissionStatsTweaksCount++] = missionStats;
+}
+
+//------------- Hooks -------------//
+internal void *showpausemenu_hook_ret = (void *)0x00BCCCA5;
+internal void *tweaks_missionstats_constructor_ret = (void *)0x00A0DD57;
+
+internal void NAKED ShowPauseMenu_Hook()
+{
+  __asm {
+    push ecx
+    call ShowPauseMenu
+    pop ecx
+    
+    push ebp
+    mov ebp, esp
+    push 0FFFFFFFFh
+    
+    jmp [showpausemenu_hook_ret]
+  }
+}
+
+internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
+{
+  __asm {
+    push [esp+04h]
+    call DisTweaks_MissionStats_Constructor
+    pop eax
+    
+    push ebp
+    mov ebp, esp
+    push esi
+    mov esi, [ebp+08h]
+    
+    jmp [tweaks_missionstats_constructor_ret]
+  }
+}
+
+//------------- Init -------------//
+internal bool InitMissionStatsButton()
+{
+  if (!WriteDetour((void *)0x00BCCCA0, ShowPauseMenu_Hook, 0))
+    return false;
+  if (!WriteDetour((void *)0x00A0DD50, DisTweaks_MissionStats_Constructor_Hook, 2))
+    return false;
+  
+  return true;
 }
 
 #endif

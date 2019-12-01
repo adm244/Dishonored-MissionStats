@@ -25,38 +25,25 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 //IMPORTANT(adm244): SCRATCH VERSION JUST TO GET IT UP WORKING
 
-/*
-  TODO:
-    - place all static addresses into variables, so we could change them at runtime
-    - check if process is dinhonored game
-    - check if game version is supported
-    - DLC support
-*/
+#ifndef _GAME_PATCHES_H_
+#define _GAME_PATCHES_H_
 
-#include <windows.h>
-#include <cstdio>
+#include "patches\MissionStatsButton.cpp"
+#include "patches\MissionStatsGuard.cpp"
 
-#include "types.h"
-#include "detours.cpp"
-
-#include "game\types.h"
-#include "game\patches.h"
-
-internal bool Initialize()
+internal bool InitPatches()
 {
-  if (!InitPatches()) {
-    OutputDebugStringA("Initialize: Couldn't initialize patches.");
+  if (!InitMissionStatsButton()) {
+    OutputDebugStringA("InitPatches: Couldn't initialize MissionStatsButton patch.");
+    return false;
+  }
+  
+  if (!InitMissionStatsGuard()) {
+    OutputDebugStringA("InitPatches: Couldn't initialize MissionStatsGuard patch.");
     return false;
   }
   
   return true;
 }
 
-BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
-{
-  if (reason == DLL_PROCESS_ATTACH) {
-    return Initialize() ? TRUE : FALSE;
-  }
-  
-  return TRUE;
-}
+#endif

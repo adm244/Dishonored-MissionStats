@@ -25,38 +25,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 //IMPORTANT(adm244): SCRATCH VERSION JUST TO GET IT UP WORKING
 
-/*
-  TODO:
-    - place all static addresses into variables, so we could change them at runtime
-    - check if process is dinhonored game
-    - check if game version is supported
-    - DLC support
-*/
+#ifndef _GAME_TYPES_H_
+#define _GAME_TYPES_H_
 
-#include <windows.h>
-#include <cstdio>
+#include "types\Scaleform3.h"
+#include "types\Unreal.h"
+#include "types\Dishonored.h"
+#include "types\MoviePlayer.h"
+#include "types\MissionStats.h"
 
-#include "types.h"
-#include "detours.cpp"
+#include "utils.cpp"
 
-#include "game\types.h"
-#include "game\patches.h"
-
-internal bool Initialize()
-{
-  if (!InitPatches()) {
-    OutputDebugStringA("Initialize: Couldn't initialize patches.");
-    return false;
-  }
-  
-  return true;
-}
-
-BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
-{
-  if (reason == DLL_PROCESS_ATTACH) {
-    return Initialize() ? TRUE : FALSE;
-  }
-  
-  return TRUE;
-}
+#endif

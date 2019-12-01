@@ -23,7 +23,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-//IMPORTANT(adm244): NOT AN ACTUAL SCALEFORM SOURCE!
+//NOTE(adm244): contains code to interface with Scaleform 3.3.89-ish
 
 #ifndef _SCALEFORM_3_3_89_DISHONORED_
 #define _SCALEFORM_3_3_89_DISHONORED_
@@ -134,20 +134,6 @@ struct GFxMovie {
   GFxMovieVTable *vtable;
   // ...
 };
-
-/*struct ArrayObjectVTable {
-  void *unk00;
-  void *GetTextValue; // 0x04
-  void *GetObjectType; // 0x08
-  void *SetMember; // 0x0C
-  _Object_GetMember GetMember; // 0x10
-  // ...
-};
-
-struct ArrayObject {
-  ArrayObjectVTable *vtable;
-  // ...
-};*/
 
 struct FunctionHandler {
   struct Params {
