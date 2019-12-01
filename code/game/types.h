@@ -28,7 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _GAME_TYPES_H_
 #define _GAME_TYPES_H_
 
-#include "types\Scaleform3.h"
+#include "types\Scaleform3.cpp"
 #include "types\Unreal.h"
 #include "types\Dishonored.h"
 #include "types\MoviePlayer.h"

@@ -28,6 +28,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _PATCH_MISSIONSTATS_GUARD_CPP_
 #define _PATCH_MISSIONSTATS_GUARD_CPP_
 
+//------------- Static pointers -------------//
+STATIC_POINTER(void, detour_modifystatvariable);
+STATIC_POINTER(void, hook_modifystatvariable_ret);
+
 //------------- Functions -------------//
 //FIX(adm244): replaced by DishonoredPlayerPawn_GetStatsValue function
 internal NOINLINE MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
@@ -90,8 +94,6 @@ internal bool CDECL ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int typ
 }
 
 //------------- Hooks -------------//
-internal void *modify_stat_variable_hook_ret = (void *)0x00AA94A5;
-
 internal void NAKED ModifyStatVariable_Hook()
 {
   __asm {
@@ -118,14 +120,14 @@ internal void NAKED ModifyStatVariable_Hook()
     push esi
     push edi
     
-    jmp [modify_stat_variable_hook_ret]
+    jmp [hook_modifystatvariable_ret]
   }
 }
 
 //------------- Init -------------//
 internal bool InitMissionStatsGuard()
 {
-  /*if (!WriteDetour((void *)0x00AA94A0, ModifyStatVariable_Hook, 0)) {
+  /*if (!WriteDetour(detour_modifystatvariable, ModifyStatVariable_Hook, 0)) {
     return false;
   }*/
   

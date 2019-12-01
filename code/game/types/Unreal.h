@@ -34,16 +34,16 @@ struct World;
 struct DishonoredGameInfo;
 
 //------------- Static pointers -------------//
-internal World **world = (World **)(0x0143D878);
+STATIC_POINTER_POINTER(World, world);
 
 //------------- Functions -------------//
-typedef UObject * (CDECL _NewObject)(UClass *classPtr, UObject *package, int uniqueId, int, int, int, UObject *defaultObject, int, int, int);
-typedef UObject * (THISCALL *_UClass_GetDefaultObject)(UClass *, int);
-typedef DishonoredGameInfo * (THISCALL *_World_GetGameInfo)(World *);
+DECLARE_CDECL_FUNCTION(UObject *, NewObject, UClass *, UObject *, int, int, int, int, UObject *, int, int, int);
+DECLARE_MEMBER_FUNCTION(UObject *, UClass, GetDefaultObject, int);
+DECLARE_MEMBER_FUNCTION(DishonoredGameInfo *, World, GetGameInfo);
 
-internal _NewObject *NewObject = (_NewObject *)(0x00494C80);
-internal _UClass_GetDefaultObject UClass_GetDefaultObject = (_UClass_GetDefaultObject)(0x004967F0);
-internal _World_GetGameInfo World_GetGameInfo = (_World_GetGameInfo)(0x007816E0);
+CDECL_FUNCTION(NewObject);
+MEMBER_FUNCTION(UClass, GetDefaultObject);
+MEMBER_FUNCTION(World, GetGameInfo);
 
 //------------- Structures -------------//
 #pragma pack(4)

@@ -44,23 +44,25 @@ struct DisDarknessManager;
 struct ArkProfileSettings;
 
 //------------- Static pointers -------------//
-internal DishonoredEngine **dishonoredEngine = (DishonoredEngine **)(0x0143B20C);
-internal DishonoredPlayerController **playerController = (DishonoredPlayerController **)(0x01452DD4);
-internal DishonoredPlayerPawn **playerPawn = (DishonoredPlayerPawn **)(0x01452DE8);
+STATIC_POINTER_POINTER(DishonoredEngine, dishonoredEngine);
+STATIC_POINTER_POINTER(DishonoredPlayerController, playerController);
+STATIC_POINTER_POINTER(DishonoredPlayerPawn, playerPawn);
 
 //------------- Functions -------------//
-typedef DisGlobalUIManager * (CDECL _GetGlobalUIManager)();
-typedef DisGFxMoviePlayerHUD * (STDCALL _GetHUD)();
-typedef bool (CDECL _IsDLC06)();
-typedef bool (CDECL _IsDLC07)();
-typedef bool (THISCALL *_DishonoredPlayerPawn_HasCompleteAction)(DishonoredPlayerPawn *, DisStoryFlagSet *, DisSpecialActionFlagSet *);
-typedef ArkProfileSettings * (THISCALL *_DishonoredPlayerController_GetProfileSettings)(DishonoredPlayerController *);
+DECLARE_CDECL_FUNCTION(DisGlobalUIManager *, GetGlobalUIManager);
+DECLARE_CDECL_FUNCTION(bool, IsDLC06);
+DECLARE_CDECL_FUNCTION(bool, IsDLC07);
+DECLARE_STDCALL_FUNCTION(DisGFxMoviePlayerHUD *, GetHUD);
+DECLARE_MEMBER_FUNCTION(bool, DishonoredPlayerPawn, HasCompleteAction, DisStoryFlagSet *, DisSpecialActionFlagSet *);
 
-internal _GetGlobalUIManager *GetGlobalUIManager = (_GetGlobalUIManager *)(0x00BBF730);
-internal _GetHUD *GetHUD = (_GetHUD *)0x00BBF760;
-internal _IsDLC06 *IsDLC06 = (_IsDLC06 *)(0x00BBF1D0);
-internal _IsDLC07 *IsDLC07 = (_IsDLC07 *)(0x00BBF270);
-internal _DishonoredPlayerPawn_HasCompleteAction DishonoredPlayerPawn_HasCompleteAction = (_DishonoredPlayerPawn_HasCompleteAction)(0x00AB1100);
+CDECL_FUNCTION(GetGlobalUIManager);
+CDECL_FUNCTION(IsDLC06);
+CDECL_FUNCTION(IsDLC07);
+STDCALL_FUNCTION(GetHUD);
+MEMBER_FUNCTION(DishonoredPlayerPawn, HasCompleteAction);
+
+//------------- Virtual functions -------------//
+DECLARE_MEMBER_FUNCTION(ArkProfileSettings *, DishonoredPlayerController, GetProfileSettings);
 
 //------------- Structures -------------//
 #pragma pack(4)

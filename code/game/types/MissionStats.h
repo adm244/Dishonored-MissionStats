@@ -49,15 +49,15 @@ enum MissionStatTypes {
 };
 
 //------------- Functions -------------//
-typedef StoryFlagSet * (THISCALL *_DisStoryFlagSet_GetStoryFlagSet)(DisStoryFlagSet *, DisSpecialActionFlagSet *);
-typedef int (THISCALL *_DisDarknessManager_GetChaosTresholdIndex)(DisDarknessManager *);
-typedef int * (THISCALL *_DishonoredPlayerPawn_GetStatsValue)(DishonoredPlayerPawn *, int, float *, int *);
-typedef void (THISCALL *_ArkProfileSettings_SetMissionStats)(ArkProfileSettings *, int, int, u16, r32 *, int);
+DECLARE_MEMBER_FUNCTION(StoryFlagSet *, DisStoryFlagSet, GetStoryFlagSet, DisSpecialActionFlagSet *);
+DECLARE_MEMBER_FUNCTION(int, DisDarknessManager, GetChaosTresholdIndex);
+DECLARE_MEMBER_FUNCTION(int *, DishonoredPlayerPawn, GetStatsValue, int, float *, int *);
+DECLARE_MEMBER_FUNCTION(void, ArkProfileSettings, SetMissionStats, int, int, u16, r32 *, int);
 
-internal _DisStoryFlagSet_GetStoryFlagSet DisStoryFlagSet_GetStoryFlagSet = (_DisStoryFlagSet_GetStoryFlagSet)(0x00C04640);
-internal _DisDarknessManager_GetChaosTresholdIndex DisDarknessManager_GetChaosTresholdIndex = (_DisDarknessManager_GetChaosTresholdIndex)(0x00C47FF0);
-internal _DishonoredPlayerPawn_GetStatsValue DishonoredPlayerPawn_GetStatsValue = (_DishonoredPlayerPawn_GetStatsValue)(0x00AA93C0);
-internal _ArkProfileSettings_SetMissionStats ArkProfileSettings_SetMissionStats = (_ArkProfileSettings_SetMissionStats)(0x00938210);
+MEMBER_FUNCTION(DisStoryFlagSet, GetStoryFlagSet);
+MEMBER_FUNCTION(DisDarknessManager, GetChaosTresholdIndex);
+MEMBER_FUNCTION(DishonoredPlayerPawn, GetStatsValue);
+MEMBER_FUNCTION(ArkProfileSettings, SetMissionStats);
 
 //------------- Structures -------------//
 #pragma pack(4)

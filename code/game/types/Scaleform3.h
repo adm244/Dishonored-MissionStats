@@ -25,13 +25,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 //NOTE(adm244): contains code to interface with Scaleform 3.3.89-ish
 
-#ifndef _SCALEFORM_3_3_89_DISHONORED_
-#define _SCALEFORM_3_3_89_DISHONORED_
+#ifndef _SCALEFORM_3_3_89_DISHONORED_H_
+#define _SCALEFORM_3_3_89_DISHONORED_H_
 
+struct ValueInterface;
 struct GFxValue;
 struct GFxMovie;
 struct FunctionHandler;
 
+//------------- Enumerables -------------//
 enum SetVarType {
   SV_Normal,
   SV_Sticky,
@@ -69,39 +71,67 @@ enum ValueType {
   VT_ConvertStringW = VTC_ConvertBit | VT_StringW
 };
 
-typedef void (THISCALL *_GFxMovie_CreateString)(GFxMovie *, GFxValue *, char *);
-typedef void (THISCALL *_GFxMovie_CreateStringW)(GFxMovie *, GFxValue *, wchar_t *);
-typedef void (THISCALL *_GFxMovie_CreateObject)(GFxMovie *, GFxValue *, char *, GFxValue *, int);
-typedef void (THISCALL *_GFxMovie_CreateArray)(GFxMovie *, GFxValue *);
-typedef void (THISCALL *_GFxMovie_CreateFunction)(GFxMovie *, GFxValue *, FunctionHandler *, void *);
+//------------- Public functions -------------//
+#define GFxMovie_CreateString(p, a, b) ((p)->vtable->CreateString(p, a, b))
+#define GFxMovie_CreateStringW(p, a, b) ((p)->vtable->CreateStringW(p, a, b))
+#define GFxMovie_CreateObject(p, a, b, c, d) ((p)->vtable->CreateObject(p, a, b, c, d))
+#define GFxMovie_CreateArray(p, a) ((p)->vtable->CreateArray(p, a))
+#define GFxMovie_CreateFunction(p, a, b, c) ((p)->vtable->CreateFunction(p, a, b, c))
 
-typedef bool (THISCALL *_GFxMovie_SetVariable)(GFxMovie *, char *, GFxValue *, SetVarType);
-typedef bool (THISCALL *_GFxMovie_GetVariable)(GFxMovie *, GFxValue *, char *);
-typedef bool (THISCALL *_GFxMovie_SetVariableArray)(GFxMovie *, SetArrayType, char *, int, void *, int, SetVarType);
-typedef bool (THISCALL *_GFxMovie_SetVariableArraySize)(GFxMovie *, char *, int, SetVarType);
-typedef uint (THISCALL *_GFxMovie_GetVariableArraySize)(GFxMovie *, char *);
-typedef bool (THISCALL *_GFxMovie_GetVariableArray)(GFxMovie *, SetArrayType, char *, int, void *, int);
+#define GFxMovie_SetVariable(p, a, b, c) ((p)->vtable->SetVariable(p, a, b, c))
+#define GFxMovie_GetVariable(p, a, b) ((p)->vtable->GetVariable(p, a, b))
+#define GFxMovie_SetVariableArray(p, a, b, c, d, e, f) ((p)->vtable->SetVariableArray(p, a, b, c, d, e, f))
+#define GFxMovie_SetVariableArraySize(p, a, b, c) ((p)->vtable->SetVariableArraySize(p, a, b, c))
+#define GFxMovie_GetVariableArraySize(p, a) ((p)->vtable->GetVariableArraySize(p, a))
+#define GFxMovie_GetVariableArray(p, a, b, c, d, e) ((p)->vtable->GetVariableArray(p, a, b, c, d, e))
 
-typedef bool (THISCALL *_ValueInterface_GetMember)(void *, void *, char *, GFxValue *, bool);
-typedef bool (THISCALL *_ValueInterface_SetMember)(void *, void *, char *, GFxValue *, bool);
-typedef bool (THISCALL *_ValueInterface_Invoke)(void *, void *, GFxValue *, char *, GFxValue *, int, bool);
-typedef bool (THISCALL *_ValueInterface_PushBack)(void *, void *, GFxValue *);
-typedef bool (THISCALL *_ValueInterface_PopBack)(void *, void *, GFxValue *);
+DECLARE_MEMBER_FUNCTION(void, GFxValue, SetUndefined);
+DECLARE_MEMBER_FUNCTION(void, GFxValue, SetNull);
+DECLARE_MEMBER_FUNCTION(void, GFxValue, SetBoolean, bool);
+DECLARE_MEMBER_FUNCTION(void, GFxValue, SetDouble, r64);
+DECLARE_MEMBER_FUNCTION(void, GFxValue, SetStringW, wchar_t *);
 
-internal _ValueInterface_GetMember ValueInterface_GetMember = (_ValueInterface_GetMember)0x00DA8AD0;
-internal _ValueInterface_SetMember ValueInterface_SetMember = (_ValueInterface_SetMember)0x00DA58F0;
-internal _ValueInterface_Invoke ValueInterface_Invoke = (_ValueInterface_Invoke)0x00DA8230;
-internal _ValueInterface_PushBack ValueInterface_PushBack = (_ValueInterface_PushBack)0x00DA5A20;
-internal _ValueInterface_PopBack ValueInterface_PopBack = (_ValueInterface_PopBack)0x00DA68C0;
+MEMBER_FUNCTION(GFxValue, SetUndefined);
+MEMBER_FUNCTION(GFxValue, SetNull);
+MEMBER_FUNCTION(GFxValue, SetBoolean);
+MEMBER_FUNCTION(GFxValue, SetDouble);
+MEMBER_FUNCTION(GFxValue, SetStringW);
 
-typedef void (THISCALL *_GFxValue_SetUndefined)(GFxValue *);
-typedef void (THISCALL *_GFxValue_SetNull)(GFxValue *);
-typedef void (THISCALL *_GFxValue_SetBoolean)(GFxValue *, bool);
-typedef void (THISCALL *_GFxValue_SetDouble)(GFxValue *, double);
-typedef void (THISCALL *_GFxValue_SetStringW)(GFxValue *, wchar_t *);
+//------------- Private functions -------------//
+DECLARE_MEMBER_FUNCTION(bool, ValueInterface, GetMember, void *, char *, GFxValue *, bool);
+DECLARE_MEMBER_FUNCTION(bool, ValueInterface, SetMember, void *, char *, GFxValue *, bool);
+DECLARE_MEMBER_FUNCTION(bool, ValueInterface, Invoke, void *, GFxValue *, char *, GFxValue *, int, bool);
+DECLARE_MEMBER_FUNCTION(bool, ValueInterface, PushBack, void *, GFxValue *);
+DECLARE_MEMBER_FUNCTION(bool, ValueInterface, PopBack, void *, GFxValue *);
+
+MEMBER_FUNCTION(ValueInterface, GetMember);
+MEMBER_FUNCTION(ValueInterface, SetMember);
+MEMBER_FUNCTION(ValueInterface, Invoke);
+MEMBER_FUNCTION(ValueInterface, PushBack);
+MEMBER_FUNCTION(ValueInterface, PopBack);
+
+//------------- Virtual functions -------------//
+DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateString, GFxValue *, char *);
+DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateStringW, GFxValue *, wchar_t *);
+DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateObject, GFxValue *, char *, GFxValue *, int);
+DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateArray, GFxValue *);
+DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateFunction, GFxValue *, FunctionHandler *, void *);
+
+DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariable, char *, GFxValue *, SetVarType);
+DECLARE_MEMBER_FUNCTION(bool, GFxMovie, GetVariable, GFxValue *, char *);
+DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariableArray, SetArrayType, char *, int, void *, int, SetVarType);
+DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariableArraySize, char *, int, SetVarType);
+DECLARE_MEMBER_FUNCTION(uint, GFxMovie, GetVariableArraySize, char *);
+DECLARE_MEMBER_FUNCTION(bool, GFxMovie, GetVariableArray, SetArrayType, char *, int, void *, int);
+
+//------------- Structures -------------//
+struct ValueInterface {
+  void *unk00;
+  // ...
+};
 
 struct GFxValue {
-  void *valueInterface;
+  ValueInterface *valueInterface;
   ValueType type;
   union {
     void *data;
@@ -150,62 +180,5 @@ struct FunctionHandler {
   virtual void Call(Params *params) = 0;
 };
 assert_size(FunctionHandler, 0x4);
-
-//--------------------------------------------\\
-//------------- Public interface -------------\\
-//--------------------------------------------\\
-
-#define GFxMovie_CreateString(p, a, b) ((p)->vtable->CreateString(p, a, b))
-#define GFxMovie_CreateStringW(p, a, b) ((p)->vtable->CreateStringW(p, a, b))
-#define GFxMovie_CreateObject(p, a, b, c, d) ((p)->vtable->CreateObject(p, a, b, c, d))
-#define GFxMovie_CreateArray(p, a) ((p)->vtable->CreateArray(p, a))
-#define GFxMovie_CreateFunction(p, a, b, c) ((p)->vtable->CreateFunction(p, a, b, c))
-
-#define GFxMovie_SetVariable(p, a, b, c) ((p)->vtable->SetVariable(p, a, b, c))
-#define GFxMovie_GetVariable(p, a, b) ((p)->vtable->GetVariable(p, a, b))
-#define GFxMovie_SetVariableArray(p, a, b, c, d, e, f) ((p)->vtable->SetVariableArray(p, a, b, c, d, e, f))
-#define GFxMovie_SetVariableArraySize(p, a, b, c) ((p)->vtable->SetVariableArraySize(p, a, b, c))
-#define GFxMovie_GetVariableArraySize(p, a) ((p)->vtable->GetVariableArraySize(p, a))
-#define GFxMovie_GetVariableArray(p, a, b, c, d, e) ((p)->vtable->GetVariableArray(p, a, b, c, d, e))
-
-internal _GFxValue_SetUndefined GFxValue_SetUndefined = (_GFxValue_SetUndefined)0x0097B650;
-internal _GFxValue_SetNull GFxValue_SetNull = (_GFxValue_SetNull)0x0097B680;
-internal _GFxValue_SetBoolean GFxValue_SetBoolean = (_GFxValue_SetBoolean)0x0097B6B0;
-internal _GFxValue_SetDouble GFxValue_SetDouble = (_GFxValue_SetDouble)0x0097B700;
-internal _GFxValue_SetStringW GFxValue_SetStringW = (_GFxValue_SetStringW)0x0097B740;
-
-internal bool GFxValue_IsDisplayObject(GFxValue *value)
-{
-  return (value->type & VT_DisplayObject) ? true : false;
-}
-
-internal bool GFxValue_GetMember(GFxValue *ptr, char *name, GFxValue *dest)
-{
-  bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
-  return ValueInterface_GetMember(ptr->valueInterface, ptr->data, name, dest, isDisplayObject);
-}
-
-internal bool GFxValue_SetMember(GFxValue *ptr, char *name, GFxValue *src)
-{
-  bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
-  return ValueInterface_SetMember(ptr->valueInterface, ptr->data, name, src, isDisplayObject);
-}
-
-//FIX(adm244): swap result and name args
-internal bool GFxValue_Invoke(GFxValue *ptr, GFxValue *result, char *name, GFxValue *args, int argsCount)
-{
-  bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
-  return ValueInterface_Invoke(ptr->valueInterface, ptr->data, result, name, args, argsCount, isDisplayObject);
-}
-
-internal bool GFxValue_PushBack(GFxValue *ptr, GFxValue *value)
-{
-  return ValueInterface_PushBack(ptr->valueInterface, ptr->data, value);
-}
-
-internal bool GFxValue_PopBack(GFxValue *ptr, GFxValue *value)
-{
-  return ValueInterface_PopBack(ptr->valueInterface, ptr->data, value);
-}
 
 #endif

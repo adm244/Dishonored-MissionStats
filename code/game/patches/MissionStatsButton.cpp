@@ -45,6 +45,13 @@ struct ButtonsData {
   ButtonLockState state;
 };
 
+//------------- Static pointers -------------//
+STATIC_POINTER(void, detour_showpausemenu);
+STATIC_POINTER(void, detour_distweaks_missionstats_ctor);
+
+STATIC_POINTER(void, hook_showpausemenu_ret);
+STATIC_POINTER(void, hook_distweaks_missionstats_ctor_ret);
+
 //------------- Static variables -------------//
 internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
 internal uint g_MissionStatsTweaksCount = 0;
@@ -302,9 +309,6 @@ internal void CDECL DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *m
 }
 
 //------------- Hooks -------------//
-internal void *showpausemenu_hook_ret = (void *)0x00BCCCA5;
-internal void *tweaks_missionstats_constructor_ret = (void *)0x00A0DD57;
-
 internal void NAKED ShowPauseMenu_Hook()
 {
   __asm {
@@ -316,7 +320,7 @@ internal void NAKED ShowPauseMenu_Hook()
     mov ebp, esp
     push 0FFFFFFFFh
     
-    jmp [showpausemenu_hook_ret]
+    jmp [hook_showpausemenu_ret]
   }
 }
 
@@ -332,16 +336,16 @@ internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
     push esi
     mov esi, [ebp+08h]
     
-    jmp [tweaks_missionstats_constructor_ret]
+    jmp [hook_distweaks_missionstats_ctor_ret]
   }
 }
 
 //------------- Init -------------//
 internal bool InitMissionStatsButton()
 {
-  if (!WriteDetour((void *)0x00BCCCA0, ShowPauseMenu_Hook, 0))
+  if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
     return false;
-  if (!WriteDetour((void *)0x00A0DD50, DisTweaks_MissionStats_Constructor_Hook, 2))
+  if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
     return false;
   
   return true;

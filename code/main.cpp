@@ -27,8 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*
   TODO:
-    - place all static addresses into variables, so we could change them at runtime
-    - check if process is dinhonored game
+    - check if process is dishonored game
     - check if game version is supported
     - DLC support
 */
@@ -39,6 +38,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "types.h"
 #include "detours.cpp"
 
+#include "game\pointers.h"
 #include "game\types.h"
 #include "game\patches.h"
 

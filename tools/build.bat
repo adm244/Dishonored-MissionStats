@@ -2,10 +2,10 @@
 REM This file is a part of cdev project
 REM https://github.com/adm244/cdev
 
+SETLOCAL
 SET INCLUDE=%DXSDK_DIR%Include;%INCLUDE%
 SET LIB=%DXSDK_DIR%Lib\x86;%LIB%
 
-SETLOCAL
 REM [customize those variables]
 SET libs=kernel32.lib d3dx9.lib
 SET files=%source%\main.cpp

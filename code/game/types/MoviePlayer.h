@@ -39,16 +39,18 @@ enum DisGFxMoviePlayerPauseMenu_Modes {
 };
 
 //------------- Functions -------------//
-typedef void (THISCALL *_DisGFxMoviePlayerHUD_ShowLocationDiscovery)(DisGFxMoviePlayerHUD *, UString *, int);
-typedef void (THISCALL *_DisGFxMoviePlayerHUD_ShowGameMessage)(DisGFxMoviePlayerHUD *, UString *, r32);
-//typedef void (THISCALL *_Unk20_ShowNote)(void *unk20, NoteContents *contents, int unk03);
-typedef int (THISCALL *_DisGFxMoviePlayerMissionStats_Show)(DisGFxMoviePlayerMissionStats *, DisTweaks_MissionStats *, int);
-typedef bool (THISCALL *_DisGFxMoviePlayer_Start)(DisGFxMoviePlayer *, void *);
+DECLARE_MEMBER_FUNCTION(void, DisGFxMoviePlayerHUD, ShowLocationDiscovery, UString *, int);
+DECLARE_MEMBER_FUNCTION(void, DisGFxMoviePlayerHUD, ShowGameMessage, UString *, r32);
+DECLARE_MEMBER_FUNCTION(int, DisGFxMoviePlayerMissionStats, Show, DisTweaks_MissionStats *, int);
+//DECLARE_MEMBER_FUNCTION(void, Unk20, ShowNote, NoteContents *, int);
 
-internal _DisGFxMoviePlayerHUD_ShowLocationDiscovery DisGFxMoviePlayerHUD_ShowLocationDiscovery = (_DisGFxMoviePlayerHUD_ShowLocationDiscovery)0x00B94D60;
-internal _DisGFxMoviePlayerHUD_ShowGameMessage DisGFxMoviePlayerHUD_ShowGameMessage = (_DisGFxMoviePlayerHUD_ShowGameMessage)0x00BAFFA0;
-//internal _Unk20_ShowNote Unk20_ShowNote = (_Unk20_ShowNote)0x00BCC2B0;
-internal _DisGFxMoviePlayerMissionStats_Show DisGFxMoviePlayerMissionStats_Show = (_DisGFxMoviePlayerMissionStats_Show)(0x00BD3A60);
+MEMBER_FUNCTION(DisGFxMoviePlayerHUD, ShowLocationDiscovery);
+MEMBER_FUNCTION(DisGFxMoviePlayerHUD, ShowGameMessage);
+MEMBER_FUNCTION(DisGFxMoviePlayerMissionStats, Show);
+//MEMBER_FUNCTION(Unk20, ShowNote);
+
+//------------- Virtual functions -------------//
+DECLARE_MEMBER_FUNCTION(bool, DisGFxMoviePlayer, Start, void *);
 
 //------------- Structures -------------//
 #pragma pack(4)
