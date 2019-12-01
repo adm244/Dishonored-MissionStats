@@ -111,18 +111,18 @@ MEMBER_FUNCTION(ValueInterface, PushBack);
 MEMBER_FUNCTION(ValueInterface, PopBack);
 
 //------------- Virtual functions -------------//
-DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateString, GFxValue *, char *);
-DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateStringW, GFxValue *, wchar_t *);
-DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateObject, GFxValue *, char *, GFxValue *, int);
-DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateArray, GFxValue *);
-DECLARE_MEMBER_FUNCTION(void, GFxMovie, CreateFunction, GFxValue *, FunctionHandler *, void *);
+DECLARE_VIRTUAL_FUNCTION(void, GFxMovie, CreateString, GFxValue *, char *);
+DECLARE_VIRTUAL_FUNCTION(void, GFxMovie, CreateStringW, GFxValue *, wchar_t *);
+DECLARE_VIRTUAL_FUNCTION(void, GFxMovie, CreateObject, GFxValue *, char *, GFxValue *, int);
+DECLARE_VIRTUAL_FUNCTION(void, GFxMovie, CreateArray, GFxValue *);
+DECLARE_VIRTUAL_FUNCTION(void, GFxMovie, CreateFunction, GFxValue *, FunctionHandler *, void *);
 
-DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariable, char *, GFxValue *, SetVarType);
-DECLARE_MEMBER_FUNCTION(bool, GFxMovie, GetVariable, GFxValue *, char *);
-DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariableArray, SetArrayType, char *, int, void *, int, SetVarType);
-DECLARE_MEMBER_FUNCTION(bool, GFxMovie, SetVariableArraySize, char *, int, SetVarType);
-DECLARE_MEMBER_FUNCTION(uint, GFxMovie, GetVariableArraySize, char *);
-DECLARE_MEMBER_FUNCTION(bool, GFxMovie, GetVariableArray, SetArrayType, char *, int, void *, int);
+DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, SetVariable, char *, GFxValue *, SetVarType);
+DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, GetVariable, GFxValue *, char *);
+DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, SetVariableArray, SetArrayType, char *, int, void *, int, SetVarType);
+DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, SetVariableArraySize, char *, int, SetVarType);
+DECLARE_VIRTUAL_FUNCTION(uint, GFxMovie, GetVariableArraySize, char *);
+DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, GetVariableArray, SetArrayType, char *, int, void *, int);
 
 //------------- Structures -------------//
 struct ValueInterface {

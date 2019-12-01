@@ -43,6 +43,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 // internal _<obj>_<func> <obj>_<func> = (_<obj>_<func>)(ptr_<obj>_<func>_addr)
 #define MEMBER_FUNCTION(obj, func) internal _##obj##_##func obj##_##func = (_##obj##_##func)(ptr_##obj##_##func##_addr)
 
+// typedef <ret> (THISCALL * _<obj>_<func>)(obj *, ...)
+#define DECLARE_VIRTUAL_FUNCTION(ret, obj, func, ...) DECLARE_MEMBER_FUNCTION(ret, obj, func, __VA_ARGS__)
+// _<obj>_<func> <func>
+#define VIRTUAL_FUNCTION(obj, func) _##obj##_##func func
+
 // internal void (* ptr_<func>_addr) = (void *)(<addr>)
 #define DEFINE_CDECL_FUNCTION(func, addr) internal void (* ptr_##func##_addr) = (void *)(addr)
 // typedef <ret> (CDECL * _<func>)(...)

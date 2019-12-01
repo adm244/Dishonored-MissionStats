@@ -62,7 +62,8 @@ STDCALL_FUNCTION(GetHUD);
 MEMBER_FUNCTION(DishonoredPlayerPawn, HasCompleteAction);
 
 //------------- Virtual functions -------------//
-DECLARE_MEMBER_FUNCTION(ArkProfileSettings *, DishonoredPlayerController, GetProfileSettings);
+#define DishonoredPlayerController_GetProfileSettings(p) ((p)->vtable->GetProfileSettings(p))
+DECLARE_VIRTUAL_FUNCTION(ArkProfileSettings *, DishonoredPlayerController, GetProfileSettings);
 
 //------------- Structures -------------//
 #pragma pack(4)
@@ -119,7 +120,7 @@ struct UIDataStore_OnlinePlayerData {
 
 struct DishonoredPlayerControllerVTable {
   u8 unk00[0x590-0x0];
-  _DishonoredPlayerController_GetProfileSettings GetProfileSettings; // 0x590
+  VIRTUAL_FUNCTION(DishonoredPlayerController, GetProfileSettings); // 0x590
   // ...
 };
 

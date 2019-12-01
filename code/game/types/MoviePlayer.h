@@ -50,7 +50,8 @@ MEMBER_FUNCTION(DisGFxMoviePlayerMissionStats, Show);
 //MEMBER_FUNCTION(Unk20, ShowNote);
 
 //------------- Virtual functions -------------//
-DECLARE_MEMBER_FUNCTION(bool, DisGFxMoviePlayer, Start, void *);
+#define DisGFxMoviePlayer_Start(p, a) ((p)->vtable->Start(p, a))
+DECLARE_VIRTUAL_FUNCTION(bool, DisGFxMoviePlayer, Start, void *);
 
 //------------- Structures -------------//
 #pragma pack(4)
@@ -72,7 +73,7 @@ struct DisGFxMovie {
 struct DisGFxMoviePlayerVTable {
   u8 unk00[0x124-0x0];
   void *Preload; // 0x124
-  _DisGFxMoviePlayer_Start Start; // 0x128
+  VIRTUAL_FUNCTION(DisGFxMoviePlayer, Start); // 0x128
   void *Advance; // 0x12C
   void *unk130;
   void *unk134;

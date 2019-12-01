@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 struct SetPauseMenuFunc;
 struct OnMissionStatsClickedFunc;
 
+//------------- Enumerables -------------//
 enum ButtonLockState {
   LockState_None,
   LockState_SaveGame,
@@ -53,6 +54,7 @@ STATIC_POINTER(void, hook_showpausemenu_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_ctor_ret);
 
 //------------- Static variables -------------//
+//FIX(adm244): proper array implementation
 internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
 internal uint g_MissionStatsTweaksCount = 0;
 
@@ -238,7 +240,7 @@ internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
   
   i32 missionIndex = GetMissionIndex(tweaks->missionNumber);
   
-  ArkProfileSettings *profileSettings = (*playerController)->vtable->GetProfileSettings(*playerController);
+  ArkProfileSettings *profileSettings = DishonoredPlayerController_GetProfileSettings(*playerController);
   ArkProfileSettings_SetMissionStats(profileSettings, missionIndex, tweaks->dlcNumber, specialActionsFlags, statsValuesBuffer, tweaks->statsValues.length);
   
   return true;
@@ -287,6 +289,7 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
   //
   // Nonetheless, good thing I've checked what the actual problem was,
   // never would've thought that the issue lies in garbage being stored in a vtable...
+  //FIX(adm244): memory leaks
   SetPauseMenu = new SetPauseMenuFunc();
   OnMissionStatsClicked = new OnMissionStatsClickedFunc();
   
