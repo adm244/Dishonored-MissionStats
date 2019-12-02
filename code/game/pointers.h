@@ -108,9 +108,11 @@ DEFINE_MEMBER_FUNCTION(ValueInterface, PopBack, 0x00DA68C0);
 //------------- MissionStatsButton.cpp -------------//
 DEFINE_STATIC_POINTER(detour_showpausemenu, 0x00BCCCA0);
 DEFINE_STATIC_POINTER(detour_distweaks_missionstats_ctor, 0x00A0DD50);
+DEFINE_STATIC_POINTER(detour_distweaks_missionstats_dtor, 0x00A0A150);
 
 DEFINE_STATIC_POINTER(hook_showpausemenu_ret, 0x00BCCCA5);
 DEFINE_STATIC_POINTER(hook_distweaks_missionstats_ctor_ret, 0x00A0DD57);
+DEFINE_STATIC_POINTER(hook_distweaks_missionstats_dtor_ret, 0x00A0A155);
 
 //------------- MissionStatsGuard.cpp -------------//
 DEFINE_STATIC_POINTER(detour_modifystatvariable, 0x00AA94A0);

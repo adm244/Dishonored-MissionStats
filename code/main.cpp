@@ -27,13 +27,20 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*
   TODO:
+    - fix "Rescued Emily" in mission stats for "The Light At The End"
+    - fix pause menu not reloading after closing mission stats screen
     - check if process is dishonored game
     - check if game version is supported
-    - DLC support
+    - general code cleanup
 */
 
 #include <windows.h>
 #include <cstdio>
+
+#ifndef DEBUG
+#define NDEBUG
+#endif
+#include <assert.h>
 
 #include "types.h"
 #include "detours.cpp"

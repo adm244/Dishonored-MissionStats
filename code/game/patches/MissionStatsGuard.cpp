@@ -33,8 +33,7 @@ STATIC_POINTER(void, detour_modifystatvariable);
 STATIC_POINTER(void, hook_modifystatvariable_ret);
 
 //------------- Functions -------------//
-//FIX(adm244): replaced by DishonoredPlayerPawn_GetStatsValue function
-internal NOINLINE MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
+internal MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
 {
   UArray *missionStats = &playerPawn->missionStats;
   MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
@@ -127,9 +126,9 @@ internal void NAKED ModifyStatVariable_Hook()
 //------------- Init -------------//
 internal bool InitMissionStatsGuard()
 {
-  /*if (!WriteDetour(detour_modifystatvariable, ModifyStatVariable_Hook, 0)) {
+  if (!WriteDetour(detour_modifystatvariable, ModifyStatVariable_Hook, 0)) {
     return false;
-  }*/
+  }
   
   return true;
 }

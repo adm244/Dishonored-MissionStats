@@ -85,7 +85,10 @@ assert_size(DisTweaksBase, 0x8C);
 struct DisTweaks_MissionStats {
   DisTweaksBase base;
   u32 missionNumber; // 0x8C
+  
+  //NOTE(adm244): doesn't seem to be a dlc number...
   u32 dlcNumber; // 0x90
+  
   UArray specialActions; // 0x94
   UArray statsValues; // 0xA0
   UArray statsMaxValues; // 0xAC

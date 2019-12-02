@@ -49,9 +49,11 @@ struct ButtonsData {
 //------------- Static pointers -------------//
 STATIC_POINTER(void, detour_showpausemenu);
 STATIC_POINTER(void, detour_distweaks_missionstats_ctor);
+STATIC_POINTER(void, detour_distweaks_missionstats_dtor);
 
 STATIC_POINTER(void, hook_showpausemenu_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_ctor_ret);
+STATIC_POINTER(void, hook_distweaks_missionstats_dtor_ret);
 
 //------------- Static variables -------------//
 //FIX(adm244): proper array implementation
@@ -145,7 +147,6 @@ internal DisTweaks_MissionStats * GetMissionStatsTweaks(i32 missionNumber)
 {
   for (int i = 0; i < g_MissionStatsTweaksCount; ++i)
   {
-    //TODO(adm244): check dlcNumber as well
     DisTweaks_MissionStats *tweaks = g_MissionStatsTweaks[i];
     if (tweaks->missionNumber == missionNumber)
       return tweaks;
@@ -198,18 +199,16 @@ internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, 
       int maxValue2 = 0;
       
       DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type2, &currentValue2, &maxValue2);
-      
       currentValue += currentValue2;
     }
     
     if (templates[i].type1 == MissionStat_OverallChaos) {
       DisDarknessManager *darknessManager = (*playerPawn)->darknessManager;
       int index = DisDarknessManager_GetChaosTresholdIndex(darknessManager);
-      
-      //TODO(adm244): check if it's mission number or index
       int missionNumber = (tweaks->missionNumber + 1);
       
-      //NOTE(adm244): could be a bug, since all the rest of missions obey the rule above
+      //NOTE(adm244): last mission of base game displays chaos level incorrectly
+      // I guess let's do the same, why not...
       if (missionNumber == 9)
         missionNumber = 8;
       
@@ -249,14 +248,19 @@ internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
   {
-    //FIX(adm244): just for now...
-    GFxValue_Invoke(params->thisPtr, 0, "OnResumeClicked", 0, 0);
+    //TODO(adm244): call Close() and replace BPressed() in MissionStats.gfx
+    GFxValue_Invoke(params->thisPtr, 0, "BackToPauseMenu", 0, 0);
+    
+    //GFxValue bBackToGame_field = {0};
+    //GFxValue_SetBoolean(&bBackToGame_field, true);
+    //GFxValue_Invoke(params->thisPtr, 0, "Close", &bBackToGame_field, 1);
     
     DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
     DisGFxMoviePlayerMissionStats *missionStats = globalUIManager->missionStats;
     
     i32 missionNumber = GetMissionNumber();
     DisTweaks_MissionStats *tweaks = GetMissionStatsTweaks(missionNumber);
+    assert(tweaks);
     
     if (SetMissionStats(tweaks)) {
       DisGFxMoviePlayerMissionStats_Show(missionStats, tweaks, 1);
@@ -304,11 +308,14 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
 
 internal void CDECL DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *missionStats)
 {
-  //FIX(adm244): hack, for now
-  if (g_MissionStatsTweaksCount >= 9)
+  g_MissionStatsTweaks[g_MissionStatsTweaksCount] = missionStats;
+  ++g_MissionStatsTweaksCount;
+}
+
+internal void CDECL DisTweaks_MissionStats_Destructor(DisTweaks_MissionStats *missionStats)
+{
+  if (g_MissionStatsTweaksCount != 0)
     g_MissionStatsTweaksCount = 0;
-  
-  g_MissionStatsTweaks[g_MissionStatsTweaksCount++] = missionStats;
 }
 
 //------------- Hooks -------------//
@@ -343,12 +350,29 @@ internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
   }
 }
 
+internal void NAKED DisTweaks_MissionStats_Destructor_Hook()
+{
+  __asm {
+    push ecx
+    call DisTweaks_MissionStats_Destructor
+    pop ecx
+    
+    push ebp
+    mov ebp, esp
+    push 0FFFFFFFFh
+    
+    jmp [hook_distweaks_missionstats_dtor_ret]
+  }
+}
+
 //------------- Init -------------//
 internal bool InitMissionStatsButton()
 {
   if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
     return false;
   if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
+    return false;
+  if (!WriteDetour(detour_distweaks_missionstats_dtor, DisTweaks_MissionStats_Destructor_Hook, 0))
     return false;
   
   return true;
