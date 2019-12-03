@@ -49,7 +49,7 @@ internal MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerP
 }
 
 //------------- Detours -------------//
-internal bool CDECL ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
+internal bool CDECL Detour_ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
 {
   MissionStatEntry *stat = GetMissionStatVariable(playerPawn, type);
   
@@ -104,7 +104,7 @@ internal void NAKED ModifyStatVariable_Hook()
     mov eax, [ebp+08h]
     push eax
     push ecx
-    call ModifyStatVariable
+    call Detour_ModifyStatVariable
     pop ecx
     add esp, 08h
     pop ebp

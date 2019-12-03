@@ -29,6 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define _PATCH_MISSIONSTATS_BUTTON_CPP_
 
 struct SetPauseMenuFunc;
+struct BPressedFunc;
 struct OnMissionStatsClickedFunc;
 
 //------------- Enumerables -------------//
@@ -48,10 +49,12 @@ struct ButtonsData {
 
 //------------- Static pointers -------------//
 STATIC_POINTER(void, detour_showpausemenu);
+STATIC_POINTER(void, detour_setmissionstats);
 STATIC_POINTER(void, detour_distweaks_missionstats_ctor);
 STATIC_POINTER(void, detour_distweaks_missionstats_dtor);
 
 STATIC_POINTER(void, hook_showpausemenu_ret);
+STATIC_POINTER(void, hook_setmissionstats_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_ctor_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_dtor_ret);
 
@@ -61,6 +64,7 @@ internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
 internal uint g_MissionStatsTweaksCount = 0;
 
 internal SetPauseMenuFunc *SetPauseMenu = 0;
+internal BPressedFunc *BPressed = 0;
 internal OnMissionStatsClickedFunc *OnMissionStatsClicked = 0;
 
 internal ButtonsData data[] = {
@@ -75,6 +79,110 @@ internal ButtonsData data[] = {
 };
 
 //------------- Functions -------------//
+internal DisTweaks_MissionStats * GetMissionStatsTweaks(i32 missionNumber)
+{
+  for (int i = 0; i < g_MissionStatsTweaksCount; ++i)
+  {
+    DisTweaks_MissionStats *tweaks = g_MissionStatsTweaks[i];
+    if (tweaks->missionNumber == missionNumber)
+      return tweaks;
+  }
+  
+  return 0;
+}
+
+internal u16 GetSpecialActionsFlags(DisTweaks_MissionStats *tweaks)
+{
+  u16 flags = 0;
+  
+  for (int i = 0; i < tweaks->specialActions.length; ++i) {
+    DisSpecialAction *specialActions = (DisSpecialAction *)tweaks->specialActions.data;
+    DisStoryFlagSet *flagSet = specialActions[i].storyFlagSet;
+    DisSpecialActionFlagSet *specialActionFlagSet = &specialActions[i].flagSet;
+    
+    if (!flagSet)
+      continue;
+    
+    if (!specialActionFlagSet)
+      continue;
+    
+    if (!DisStoryFlagSet_GetStoryFlagSet(flagSet, specialActionFlagSet))
+      continue;
+    
+    if (!DishonoredPlayerPawn_HasCompleteAction(*playerPawn, flagSet, specialActionFlagSet))
+      continue;
+    
+    flags |= (1 << i);
+  }
+  
+  return flags;
+}
+
+internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, int size)
+{
+  if (size < tweaks->statsValues.length)
+    return false;
+  
+  for (int i = 0; i < tweaks->statsValues.length; ++i) {
+    StatValueTemplate *templates = (StatValueTemplate *)tweaks->statsValues.data;
+    float currentValue = 0.0f;
+    int maxValue = 0;
+    
+    DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type1, &currentValue, &maxValue);
+    
+    if (templates[i].checkType1) {
+      float currentValue2 = 0.0f;
+      int maxValue2 = 0;
+      
+      DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type2, &currentValue2, &maxValue2);
+      currentValue += currentValue2;
+    }
+    
+    if (templates[i].type1 == MissionStat_OverallChaos) {
+      DisDarknessManager *darknessManager = (*playerPawn)->darknessManager;
+      int index = DisDarknessManager_GetChaosTresholdIndex(darknessManager);
+      int missionNumber = (tweaks->missionNumber + 1);
+      
+      //NOTE(adm244): last mission of base game displays chaos level incorrectly
+      // I guess let's do the same, why not...
+      //NOTE(adm244): no need to check for dlc, none has more than 4 missions
+      if (missionNumber == 9)
+        missionNumber = 8;
+      
+      if (index < missionNumber)
+        currentValue = 0.0f; // low chaos
+      else
+        currentValue = 1.0f; // high chaos
+    }
+    
+    buffer[i] = currentValue;
+  }
+  
+  return true;
+}
+
+internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
+{
+  if (!UArray_InRange(&tweaks->specialActions, 16))
+    return false;
+  
+  if (!UArray_InRange(&tweaks->statsValues, 16))
+    return false;
+  
+  r32 statsValuesBuffer[16];
+  u16 specialActionsFlags = GetSpecialActionsFlags(tweaks);
+  if (!GetStatsValuesBuffer(tweaks, statsValuesBuffer, 16))
+    return false;
+  
+  i32 missionIndex = GetMissionIndex(tweaks->missionNumber);
+  
+  ArkProfileSettings *profileSettings = DishonoredPlayerController_GetProfileSettings(*playerController);
+  ArkProfileSettings_SetMissionStats(profileSettings, missionIndex, tweaks->dlcNumber, specialActionsFlags, statsValuesBuffer, tweaks->statsValues.length);
+  
+  return true;
+}
+
+//------------- Function handlers -------------//
 struct SetPauseMenuFunc : FunctionHandler {
   void Call(Params *params)
   {
@@ -143,118 +251,9 @@ struct SetPauseMenuFunc : FunctionHandler {
   }
 };
 
-internal DisTweaks_MissionStats * GetMissionStatsTweaks(i32 missionNumber)
-{
-  for (int i = 0; i < g_MissionStatsTweaksCount; ++i)
-  {
-    DisTweaks_MissionStats *tweaks = g_MissionStatsTweaks[i];
-    if (tweaks->missionNumber == missionNumber)
-      return tweaks;
-  }
-  
-  return 0;
-}
-
-internal u16 GetSpecialActionsFlags(DisTweaks_MissionStats *tweaks)
-{
-  u16 flags = 0;
-  
-  for (int i = 0; i < tweaks->specialActions.length; ++i) {
-    DisSpecialAction *specialActions = (DisSpecialAction *)tweaks->specialActions.data;
-    DisStoryFlagSet *flagSet = specialActions[i].storyFlagSet;
-    DisSpecialActionFlagSet *specialActionFlagSet = &specialActions[i].flagSet;
-    
-    if (!flagSet)
-      continue;
-    
-    if (!specialActionFlagSet)
-      continue;
-    
-    if (!DisStoryFlagSet_GetStoryFlagSet(flagSet, specialActionFlagSet))
-      continue;
-    
-    if (!DishonoredPlayerPawn_HasCompleteAction(*playerPawn, flagSet, specialActionFlagSet))
-      continue;
-    
-    flags |= (1 << i);
-  }
-  
-  return flags;
-}
-
-internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, int size)
-{
-  if (size < tweaks->statsValues.length)
-    return false;
-  
-  for (int i = 0; i < tweaks->statsValues.length; ++i) {
-    StatValueTemplate *templates = (StatValueTemplate *)tweaks->statsValues.data;
-    float currentValue = 0.0f;
-    int maxValue = 0;
-    
-    DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type1, &currentValue, &maxValue);
-    
-    if (templates[i].checkType1) {
-      float currentValue2 = 0.0f;
-      int maxValue2 = 0;
-      
-      DishonoredPlayerPawn_GetStatsValue(*playerPawn, templates[i].type2, &currentValue2, &maxValue2);
-      currentValue += currentValue2;
-    }
-    
-    if (templates[i].type1 == MissionStat_OverallChaos) {
-      DisDarknessManager *darknessManager = (*playerPawn)->darknessManager;
-      int index = DisDarknessManager_GetChaosTresholdIndex(darknessManager);
-      int missionNumber = (tweaks->missionNumber + 1);
-      
-      //NOTE(adm244): last mission of base game displays chaos level incorrectly
-      // I guess let's do the same, why not...
-      if (missionNumber == 9)
-        missionNumber = 8;
-      
-      if (index < missionNumber)
-        currentValue = 0.0f; // low chaos
-      else
-        currentValue = 1.0f; // high chaos
-    }
-    
-    buffer[i] = currentValue;
-  }
-  
-  return true;
-}
-
-internal bool SetMissionStats(DisTweaks_MissionStats *tweaks)
-{
-  if (!UArray_InRange(&tweaks->specialActions, 16))
-    return false;
-  
-  if (!UArray_InRange(&tweaks->statsValues, 16))
-    return false;
-  
-  r32 statsValuesBuffer[16];
-  u16 specialActionsFlags = GetSpecialActionsFlags(tweaks);
-  if (!GetStatsValuesBuffer(tweaks, statsValuesBuffer, 16))
-    return false;
-  
-  i32 missionIndex = GetMissionIndex(tweaks->missionNumber);
-  
-  ArkProfileSettings *profileSettings = DishonoredPlayerController_GetProfileSettings(*playerController);
-  ArkProfileSettings_SetMissionStats(profileSettings, missionIndex, tweaks->dlcNumber, specialActionsFlags, statsValuesBuffer, tweaks->statsValues.length);
-  
-  return true;
-}
-
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
   {
-    //TODO(adm244): call Close() and replace BPressed() in MissionStats.gfx
-    GFxValue_Invoke(params->thisPtr, 0, "BackToPauseMenu", 0, 0);
-    
-    //GFxValue bBackToGame_field = {0};
-    //GFxValue_SetBoolean(&bBackToGame_field, true);
-    //GFxValue_Invoke(params->thisPtr, 0, "Close", &bBackToGame_field, 1);
-    
     DisGlobalUIManager *globalUIManager = GetGlobalUIManager();
     DisGFxMoviePlayerMissionStats *missionStats = globalUIManager->missionStats;
     
@@ -263,22 +262,46 @@ struct OnMissionStatsClickedFunc : FunctionHandler {
     assert(tweaks);
     
     if (SetMissionStats(tweaks)) {
+      //NOTE(adm244): should be save to use
+      missionStats->base.flags |= 0x80000000;
       DisGFxMoviePlayerMissionStats_Show(missionStats, tweaks, 1);
     }
   }
 };
 
+struct BPressedFunc : FunctionHandler {
+  virtual void Call(Params *params)
+  {
+    DisGlobalUIManager *uiManager = GetGlobalUIManager();
+    DisGFxMoviePlayerPauseMenu *pauseMenu = uiManager->pauseMenu;
+    GFxMovie *gfxPauseMenu = pauseMenu->base.disMovie->movie;
+    
+    GFxValue pauseMenu_mc = {0};
+    if (GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
+      GFxValue_Invoke(&pauseMenu_mc, 0, "Open", 0, 0);
+    
+    GFxValue soundHandler_field = {0};
+    if (GFxMovie_GetVariable(params->movie, &soundHandler_field, "SoundHandler")) {
+      GFxValue soundName = {0};
+      GFxValue_SetStringW(&soundName, L"Back");
+      GFxValue_Invoke(&soundHandler_field, 0, "PlaySound", &soundName, 1);
+    }
+    
+    GFxValue_Invoke(params->thisPtr, 0, "Close", 0, 0);
+  }
+};
+
 //------------- Detours -------------//
-internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlayer)
+internal void CDECL Detour_ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenu)
 {
-  if (pauseMenuMoviePlayer->mode == PauseMenuMode_GameOver)
+  if (pauseMenu->mode == PauseMenuMode_GameOver)
     return;
   
-  GFxValue pauseMenu_mc;
-  GFxValue SetPauseMenu_func;
-  GFxValue OnMissionStatsClicked_func;
+  GFxValue pauseMenu_mc = {0};
+  GFxValue SetPauseMenu_func = {0};
+  GFxValue OnMissionStatsClicked_func = {0};
   
-  GFxMovie *gfxPauseMenu = pauseMenuMoviePlayer->base.disMovie->movie;
+  GFxMovie *gfxPauseMenu = pauseMenu->base.disMovie->movie;
   if (!GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
     return;
   
@@ -306,13 +329,35 @@ internal void CDECL ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenuMoviePlay
     return;
 }
 
-internal void CDECL DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *missionStats)
+internal void CDECL Detour_SetMissionStats(DisGFxMoviePlayerMissionStats *missionStats)
+{
+  if (!(missionStats->base.flags & 0x80000000))
+    return;
+  
+  missionStats->base.flags &= ~0x80000000;
+  
+  GFxValue missionStats_mc = {0};
+  GFxValue BPressed_func = {0};
+  
+  GFxMovie *gfxMissionStats = missionStats->base.disMovie->movie;
+  
+  if (!GFxMovie_GetVariable(gfxMissionStats, &missionStats_mc, "_root.missionStats_mc"))
+    return;
+  
+  //FIX(adm244): memory leaks
+  BPressed = new BPressedFunc();
+  
+  GFxMovie_CreateFunction(gfxMissionStats, &BPressed_func, BPressed, 0);
+  GFxValue_SetMember(&missionStats_mc, "BPressed", &BPressed_func);
+}
+
+internal void CDECL Detour_DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *missionStats)
 {
   g_MissionStatsTweaks[g_MissionStatsTweaksCount] = missionStats;
   ++g_MissionStatsTweaksCount;
 }
 
-internal void CDECL DisTweaks_MissionStats_Destructor(DisTweaks_MissionStats *missionStats)
+internal void CDECL Detour_DisTweaks_MissionStats_Destructor(DisTweaks_MissionStats *missionStats)
 {
   if (g_MissionStatsTweaksCount != 0)
     g_MissionStatsTweaksCount = 0;
@@ -323,7 +368,7 @@ internal void NAKED ShowPauseMenu_Hook()
 {
   __asm {
     push ecx
-    call ShowPauseMenu
+    call Detour_ShowPauseMenu
     pop ecx
     
     push ebp
@@ -334,11 +379,26 @@ internal void NAKED ShowPauseMenu_Hook()
   }
 }
 
+internal void NAKED SetMissionStats_Hook()
+{
+  __asm {
+    push ecx
+    call Detour_SetMissionStats
+    pop ecx
+    
+    push ebx
+    mov ebx, esp
+    sub esp, 08h
+    
+    jmp [hook_setmissionstats_ret]
+  }
+}
+
 internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
 {
   __asm {
     push [esp+04h]
-    call DisTweaks_MissionStats_Constructor
+    call Detour_DisTweaks_MissionStats_Constructor
     pop eax
     
     push ebp
@@ -354,7 +414,7 @@ internal void NAKED DisTweaks_MissionStats_Destructor_Hook()
 {
   __asm {
     push ecx
-    call DisTweaks_MissionStats_Destructor
+    call Detour_DisTweaks_MissionStats_Destructor
     pop ecx
     
     push ebp
@@ -369,6 +429,8 @@ internal void NAKED DisTweaks_MissionStats_Destructor_Hook()
 internal bool InitMissionStatsButton()
 {
   if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
+    return false;
+  if (!WriteDetour(detour_setmissionstats, SetMissionStats_Hook, 1))
     return false;
   if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
     return false;
