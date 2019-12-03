@@ -33,6 +33,13 @@ internal bool GFxValue_IsDisplayObject(GFxValue *value)
   return (value->type & VT_DisplayObject) ? true : false;
 }
 
+//FIX(adm244): swap result and name args
+internal bool GFxValue_Invoke(GFxValue *ptr, GFxValue *result, char *name, GFxValue *args, int argsCount)
+{
+  bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
+  return ValueInterface_Invoke(ptr->valueInterface, ptr->data, result, name, args, argsCount, isDisplayObject);
+}
+
 internal bool GFxValue_GetMember(GFxValue *ptr, char *name, GFxValue *dest)
 {
   bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
@@ -43,13 +50,6 @@ internal bool GFxValue_SetMember(GFxValue *ptr, char *name, GFxValue *src)
 {
   bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
   return ValueInterface_SetMember(ptr->valueInterface, ptr->data, name, src, isDisplayObject);
-}
-
-//FIX(adm244): swap result and name args
-internal bool GFxValue_Invoke(GFxValue *ptr, GFxValue *result, char *name, GFxValue *args, int argsCount)
-{
-  bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
-  return ValueInterface_Invoke(ptr->valueInterface, ptr->data, result, name, args, argsCount, isDisplayObject);
 }
 
 internal bool GFxValue_PushBack(GFxValue *ptr, GFxValue *value)

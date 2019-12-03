@@ -85,6 +85,13 @@ enum ValueType {
 #define GFxMovie_GetVariableArraySize(p, a) ((p)->vtable->GetVariableArraySize(p, a))
 #define GFxMovie_GetVariableArray(p, a, b, c, d, e) ((p)->vtable->GetVariableArray(p, a, b, c, d, e))
 
+internal bool GFxValue_IsDisplayObject(GFxValue *);
+internal bool GFxValue_Invoke(GFxValue *, GFxValue *, char *, GFxValue *, int);
+internal bool GFxValue_GetMember(GFxValue *, char *, GFxValue *);
+internal bool GFxValue_SetMember(GFxValue *, char *, GFxValue *);
+internal bool GFxValue_PushBack(GFxValue *, GFxValue *);
+internal bool GFxValue_PopBack(GFxValue *, GFxValue *);
+
 DECLARE_MEMBER_FUNCTION(void, GFxValue, SetUndefined);
 DECLARE_MEMBER_FUNCTION(void, GFxValue, SetNull);
 DECLARE_MEMBER_FUNCTION(void, GFxValue, SetBoolean, bool);
