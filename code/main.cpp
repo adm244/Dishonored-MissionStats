@@ -27,7 +27,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*
   TODO:
-    - fix "Rescued Emily" in mission stats for "The Light At The End"
     - check if process is dishonored game
     - check if game version is supported
     - general code cleanup

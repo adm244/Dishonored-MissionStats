@@ -50,11 +50,13 @@ struct ButtonsData {
 //------------- Static pointers -------------//
 STATIC_POINTER(void, detour_showpausemenu);
 STATIC_POINTER(void, detour_setmissionstats);
+STATIC_POINTER(void, detour_shouldskipmustdoflag);
 STATIC_POINTER(void, detour_distweaks_missionstats_ctor);
 STATIC_POINTER(void, detour_distweaks_missionstats_dtor);
 
 STATIC_POINTER(void, hook_showpausemenu_ret);
 STATIC_POINTER(void, hook_setmissionstats_ret);
+STATIC_POINTER(void, hook_shouldskipmustdoflag_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_ctor_ret);
 STATIC_POINTER(void, hook_distweaks_missionstats_dtor_ret);
 
@@ -263,7 +265,7 @@ struct OnMissionStatsClickedFunc : FunctionHandler {
     
     if (SetMissionStats(tweaks)) {
       //NOTE(adm244): should be save to use
-      missionStats->base.flags |= 0x80000000;
+      missionStats->base.flags |= (0x80000000 | 0x40000000);
       DisGFxMoviePlayerMissionStats_Show(missionStats, tweaks, 1);
     }
   }
@@ -351,6 +353,22 @@ internal void CDECL Detour_SetMissionStats(DisGFxMoviePlayerMissionStats *missio
   GFxValue_SetMember(&missionStats_mc, "BPressed", &BPressed_func);
 }
 
+internal bool CDECL Detour_ShouldSkipMustDoFlag(DisGFxMoviePlayerMissionStats *missionStats, DisSpecialAction *specialAction, int index)
+{
+  //NOTE(adm244): don't check "special action must be complete" flag for last base game mission
+  // fixes "Rescued Emily" showed mid-mission
+  if (missionStats->base.flags & 0x40000000) {
+    if ((index + 1) == missionStats->tweaks->specialActions.length)
+      missionStats->base.flags &= ~0x40000000;
+    
+    if (missionStats->tweaks->missionNumber == 8) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 internal void CDECL Detour_DisTweaks_MissionStats_Constructor(DisTweaks_MissionStats *missionStats)
 {
   g_MissionStatsTweaks[g_MissionStatsTweaksCount] = missionStats;
@@ -394,6 +412,34 @@ internal void NAKED SetMissionStats_Hook()
   }
 }
 
+internal void NAKED ShouldSkipMustDoFlag_Hook()
+{
+  __asm {
+    push eax
+    
+    push esi
+    push edx
+    mov ecx, [ebp-0828h]
+    push ecx
+    call Detour_ShouldSkipMustDoFlag
+    pop ecx
+    movzx ecx, al
+    
+    pop edx
+    pop esi
+    pop eax
+    
+    test ecx, ecx
+    jnz end
+    
+    mov ecx, [edx+020h]
+    and ecx, 01h
+    
+  end:
+    jmp [hook_shouldskipmustdoflag_ret]
+  }
+}
+
 internal void NAKED DisTweaks_MissionStats_Constructor_Hook()
 {
   __asm {
@@ -431,6 +477,8 @@ internal bool InitMissionStatsButton()
   if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
     return false;
   if (!WriteDetour(detour_setmissionstats, SetMissionStats_Hook, 1))
+    return false;
+  if (!WriteDetour(detour_shouldskipmustdoflag, ShouldSkipMustDoFlag_Hook, 1))
     return false;
   if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
     return false;

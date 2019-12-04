@@ -87,10 +87,13 @@ struct DisGFxMoviePlayer {
   DisGFxMovie *disMovie; // 0x38
   u8 unk3C[0xC4-0x3C];
   u32 flags; // 0xC4
-  u8 unkC8[0x180-0xC8];
+  u8 unkC8[0x17C-0xC8];
+  u32 flags2; // 0x17C
   UString name; // 0x180
-  // ...
+  UString name2; // 0x18C
+  u8 unk198[0x1B8-0x198];
 };
+assert_size(DisGFxMoviePlayer, 0x1B8);
 
 struct DisGFxMoviePlayerPauseMenu {
   DisGFxMoviePlayer base;
@@ -122,6 +125,7 @@ struct DisGFxMoviePlayerNote {
 
 struct DisGFxMoviePlayerMissionStats {
   DisGFxMoviePlayer base;
+  DisTweaks_MissionStats *tweaks; // 0x1B8
   // ...
 };
 
