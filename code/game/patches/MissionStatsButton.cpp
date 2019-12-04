@@ -28,10 +28,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _PATCH_MISSIONSTATS_BUTTON_CPP_
 #define _PATCH_MISSIONSTATS_BUTTON_CPP_
 
-struct SetPauseMenuFunc;
-struct BPressedFunc;
-struct OnMissionStatsClickedFunc;
-
 //------------- Enumerables -------------//
 enum ButtonLockState {
   LockState_None,
@@ -45,6 +41,11 @@ struct ButtonsData {
   char *name;
   char *callback;
   ButtonLockState state;
+};
+
+enum DisTweaks_MissionStats_Flags {
+  Patch_ReplaceBPressed = 0x80000000,
+  Patch_SkipMustDoFlag = 0x40000000,
 };
 
 //------------- Static pointers -------------//
@@ -64,10 +65,6 @@ STATIC_POINTER(void, hook_distweaks_missionstats_dtor_ret);
 //FIX(adm244): proper array implementation
 internal DisTweaks_MissionStats *g_MissionStatsTweaks[30];
 internal uint g_MissionStatsTweaksCount = 0;
-
-internal SetPauseMenuFunc *SetPauseMenu = 0;
-internal BPressedFunc *BPressed = 0;
-internal OnMissionStatsClickedFunc *OnMissionStatsClicked = 0;
 
 internal ButtonsData data[] = {
   {"_root.texts.t_ResumeGame", "OnResumeClicked", LockState_None},
@@ -251,7 +248,7 @@ struct SetPauseMenuFunc : FunctionHandler {
     GFxValue_SetMember(&_menu_mc_field, "_bDelayedOpeningAnimation", &delayedOpeningAnimation_field);
     GFxValue_Invoke(&_menu_mc_field, 0, "SetMenu", &buttonsASArray, 1);
   }
-};
+} SetPauseMenu;
 
 struct OnMissionStatsClickedFunc : FunctionHandler {
   virtual void Call(Params *params)
@@ -261,15 +258,16 @@ struct OnMissionStatsClickedFunc : FunctionHandler {
     
     i32 missionNumber = GetMissionNumber();
     DisTweaks_MissionStats *tweaks = GetMissionStatsTweaks(missionNumber);
-    assert(tweaks);
+    if (!tweaks)
+      return;
     
     if (SetMissionStats(tweaks)) {
       //NOTE(adm244): should be save to use
-      missionStats->base.flags |= (0x80000000 | 0x40000000);
+      SetFlag(&missionStats->base.flags, Patch_ReplaceBPressed | Patch_SkipMustDoFlag);
       DisGFxMoviePlayerMissionStats_Show(missionStats, tweaks, 1);
     }
   }
-};
+} OnMissionStatsClicked;
 
 struct BPressedFunc : FunctionHandler {
   virtual void Call(Params *params)
@@ -291,7 +289,7 @@ struct BPressedFunc : FunctionHandler {
     
     GFxValue_Invoke(params->thisPtr, 0, "Close", 0, 0);
   }
-};
+} BPressed;
 
 //------------- Detours -------------//
 internal void CDECL Detour_ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenu)
@@ -302,54 +300,39 @@ internal void CDECL Detour_ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenu)
   GFxValue pauseMenu_mc = {0};
   GFxValue SetPauseMenu_func = {0};
   GFxValue OnMissionStatsClicked_func = {0};
-  
   GFxMovie *gfxPauseMenu = pauseMenu->base.disMovie->movie;
+  
   if (!GFxMovie_GetVariable(gfxPauseMenu, &pauseMenu_mc, "_root.pauseMenu_mc"))
     return;
   
   GFxValue t_MissionStats_field = {0};
+  //TODO(adm244): load button text from a config file
   GFxValue_SetStringW(&t_MissionStats_field, L"STATISTICS");
   GFxMovie_SetVariable(gfxPauseMenu, "_root.texts.t_MissionStats", &t_MissionStats_field, SV_Normal);
-  
-  //IMPORTANT(adm244): so, apparently I'm being stupid and everything WAS correct
-  // except that the constructor for _THIS_ class was never called, though it _WAS_
-  // called for the SetPauseMenuFunc for some reason...
-  // I guess I have to educate myself on how C++ nightmare _REALLY_ works...
-  //
-  // Nonetheless, good thing I've checked what the actual problem was,
-  // never would've thought that the issue lies in garbage being stored in a vtable...
-  //FIX(adm244): memory leaks
-  SetPauseMenu = new SetPauseMenuFunc();
-  OnMissionStatsClicked = new OnMissionStatsClickedFunc();
-  
-  GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, OnMissionStatsClicked, 0);
+
+  GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, &OnMissionStatsClicked, 0);
   if (!GFxValue_SetMember(&pauseMenu_mc, "OnMissionStatsClicked", &OnMissionStatsClicked_func))
     return;
   
-  GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, SetPauseMenu, 0);
+  GFxMovie_CreateFunction(gfxPauseMenu, &SetPauseMenu_func, &SetPauseMenu, 0);
   if (!GFxValue_SetMember(&pauseMenu_mc, "SetPauseMenu", &SetPauseMenu_func))
     return;
 }
 
 internal void CDECL Detour_SetMissionStats(DisGFxMoviePlayerMissionStats *missionStats)
 {
-  if (!(missionStats->base.flags & 0x80000000))
+  if (!IsFlagSet(missionStats->base.flags, Patch_ReplaceBPressed))
     return;
-  
-  missionStats->base.flags &= ~0x80000000;
+  ClearFlag(&missionStats->base.flags, Patch_ReplaceBPressed);
   
   GFxValue missionStats_mc = {0};
   GFxValue BPressed_func = {0};
-  
   GFxMovie *gfxMissionStats = missionStats->base.disMovie->movie;
   
   if (!GFxMovie_GetVariable(gfxMissionStats, &missionStats_mc, "_root.missionStats_mc"))
     return;
   
-  //FIX(adm244): memory leaks
-  BPressed = new BPressedFunc();
-  
-  GFxMovie_CreateFunction(gfxMissionStats, &BPressed_func, BPressed, 0);
+  GFxMovie_CreateFunction(gfxMissionStats, &BPressed_func, &BPressed, 0);
   GFxValue_SetMember(&missionStats_mc, "BPressed", &BPressed_func);
 }
 
@@ -357,13 +340,14 @@ internal bool CDECL Detour_ShouldSkipMustDoFlag(DisGFxMoviePlayerMissionStats *m
 {
   //NOTE(adm244): don't check "special action must be complete" flag for last base game mission
   // fixes "Rescued Emily" showed mid-mission
-  if (missionStats->base.flags & 0x40000000) {
-    if ((index + 1) == missionStats->tweaks->specialActions.length)
-      missionStats->base.flags &= ~0x40000000;
+  if (IsFlagSet(missionStats->base.flags, Patch_SkipMustDoFlag)) {
+    int last_index = (missionStats->tweaks->specialActions.length - 1);
     
-    if (missionStats->tweaks->missionNumber == 8) {
+    if (index == last_index)
+      ClearFlag(&missionStats->base.flags, Patch_SkipMustDoFlag);
+    
+    if (missionStats->tweaks->missionNumber == 8)
       return true;
-    }
   }
   
   return false;

@@ -35,11 +35,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <windows.h>
 #include <cstdio>
 
-#ifndef DEBUG
-#define NDEBUG
-#endif
-#include <assert.h>
-
 #include "types.h"
 #include "detours.cpp"
 

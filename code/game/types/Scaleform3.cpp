@@ -28,6 +28,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Scaleform3.h"
 
+internal void GFxMovie_CreateFunction(GFxMovie *movie, GFxValue *returnValue, FunctionHandler *func, void *userData)
+{
+  func->refCount = 0;
+  movie->vtable->CreateFunction(movie, returnValue, func, userData);
+}
+
 internal bool GFxValue_IsDisplayObject(GFxValue *value)
 {
   return (value->type & VT_DisplayObject) ? true : false;

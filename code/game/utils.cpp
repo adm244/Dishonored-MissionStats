@@ -28,6 +28,21 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _GAME_COMMON_UTILS_CPP_
 #define _GAME_COMMON_UTILS_CPP_
 
+internal INLINE bool IsFlagSet(u32 value, u32 flag)
+{
+  return (value & flag);
+}
+
+internal INLINE void SetFlag(u32 *value, u32 flag)
+{
+  (*value) |= (flag);
+}
+
+internal INLINE void ClearFlag(u32 *value, u32 flag)
+{
+  (*value) &= (~flag);
+}
+
 internal UString GetUString(wchar_t *text)
 {
   UString str = {0};

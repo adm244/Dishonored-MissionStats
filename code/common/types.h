@@ -43,6 +43,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define THISCALL __thiscall
 #define NAKED __declspec(naked)
 #define NOINLINE __declspec(noinline)
+#define INLINE __inline
 
 #define assert_size(obj, size) static_assert(sizeof(obj) == size, "Size of " #obj " should be " #size)
 

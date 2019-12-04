@@ -76,7 +76,7 @@ enum ValueType {
 #define GFxMovie_CreateStringW(p, a, b) ((p)->vtable->CreateStringW(p, a, b))
 #define GFxMovie_CreateObject(p, a, b, c, d) ((p)->vtable->CreateObject(p, a, b, c, d))
 #define GFxMovie_CreateArray(p, a) ((p)->vtable->CreateArray(p, a))
-#define GFxMovie_CreateFunction(p, a, b, c) ((p)->vtable->CreateFunction(p, a, b, c))
+internal void GFxMovie_CreateFunction(GFxMovie *, GFxValue *, FunctionHandler *, void *);
 
 #define GFxMovie_SetVariable(p, a, b, c) ((p)->vtable->SetVariable(p, a, b, c))
 #define GFxMovie_GetVariable(p, a, b) ((p)->vtable->GetVariable(p, a, b))
@@ -132,6 +132,8 @@ DECLARE_VIRTUAL_FUNCTION(uint, GFxMovie, GetVariableArraySize, char *);
 DECLARE_VIRTUAL_FUNCTION(bool, GFxMovie, GetVariableArray, SetArrayType, char *, int, void *, int);
 
 //------------- Structures -------------//
+#pragma pack(4)
+
 struct ValueInterface {
   void *unk00;
   // ...
@@ -152,17 +154,17 @@ assert_size(GFxValue, 0x10);
 
 struct GFxMovieVTable {
   u8 unk00[0x2C-0x00];
-  _GFxMovie_CreateString CreateString; // 0x2C
-  _GFxMovie_CreateStringW CreateStringW; // 0x30
-  _GFxMovie_CreateObject CreateObject; // 0x34
-  _GFxMovie_CreateArray CreateArray; // 0x38
-  _GFxMovie_CreateFunction CreateFunction; // 0x3C
-  _GFxMovie_SetVariable SetVariable; // 0x40
-  _GFxMovie_GetVariable GetVariable; // 0x44
-  _GFxMovie_SetVariableArray SetVariableArray; // 0x48
-  _GFxMovie_SetVariableArraySize SetVariableArraySize; // 0x4C
-  _GFxMovie_GetVariableArraySize GetVariableArraySize; // 0x50
-  _GFxMovie_GetVariableArray GetVariableArray; // 0x54
+  VIRTUAL_FUNCTION(GFxMovie, CreateString); // 0x2C
+  VIRTUAL_FUNCTION(GFxMovie, CreateStringW); // 0x30
+  VIRTUAL_FUNCTION(GFxMovie, CreateObject); // 0x34
+  VIRTUAL_FUNCTION(GFxMovie, CreateArray); // 0x38
+  VIRTUAL_FUNCTION(GFxMovie, CreateFunction); // 0x3C
+  VIRTUAL_FUNCTION(GFxMovie, SetVariable); // 0x40
+  VIRTUAL_FUNCTION(GFxMovie, GetVariable); // 0x44
+  VIRTUAL_FUNCTION(GFxMovie, SetVariableArray); // 0x48
+  VIRTUAL_FUNCTION(GFxMovie, SetVariableArraySize); // 0x4C
+  VIRTUAL_FUNCTION(GFxMovie, GetVariableArraySize); // 0x50
+  VIRTUAL_FUNCTION(GFxMovie, GetVariableArray); // 0x54
   // ...
 };
 assert_size(GFxMovieVTable, 0x58);
@@ -183,9 +185,13 @@ struct FunctionHandler {
     void* userData;
   };
   
+  u32 refCount;
+  
   virtual ~FunctionHandler() {}
   virtual void Call(Params *params) = 0;
 };
-assert_size(FunctionHandler, 0x4);
+assert_size(FunctionHandler, 0x8);
+
+#pragma pack(pop)
 
 #endif
