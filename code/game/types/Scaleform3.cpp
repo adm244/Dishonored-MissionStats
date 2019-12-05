@@ -28,7 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Scaleform3.h"
 
-internal void GFxMovie_CreateFunction(GFxMovie *movie, GFxValue *returnValue, FunctionHandler *func, void *userData)
+internal NOINLINE void GFxMovie_CreateFunction(GFxMovie *movie, GFxValue *returnValue, FunctionHandler *func, void *userData)
 {
   func->refCount = 0;
   movie->vtable->CreateFunction(movie, returnValue, func, userData);
@@ -40,30 +40,32 @@ internal bool GFxValue_IsDisplayObject(GFxValue *value)
 }
 
 //FIX(adm244): swap result and name args
-internal bool GFxValue_Invoke(GFxValue *ptr, GFxValue *result, char *name, GFxValue *args, int argsCount)
+internal NOINLINE bool GFxValue_Invoke(GFxValue *ptr, GFxValue *result, char *name, GFxValue *args, int argsCount)
 {
   bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
   return ValueInterface_Invoke(ptr->valueInterface, ptr->data, result, name, args, argsCount, isDisplayObject);
 }
 
-internal bool GFxValue_GetMember(GFxValue *ptr, char *name, GFxValue *dest)
+//IMPORTANT(adm244): why inlined functions corrupt arguments on a stack???
+// Is there something I am not aware of? What is it???
+internal NOINLINE bool GFxValue_GetMember(GFxValue *ptr, char *name, GFxValue *dest)
 {
   bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
   return ValueInterface_GetMember(ptr->valueInterface, ptr->data, name, dest, isDisplayObject);
 }
 
-internal bool GFxValue_SetMember(GFxValue *ptr, char *name, GFxValue *src)
+internal NOINLINE bool GFxValue_SetMember(GFxValue *ptr, char *name, GFxValue *src)
 {
   bool isDisplayObject = GFxValue_IsDisplayObject(ptr);
   return ValueInterface_SetMember(ptr->valueInterface, ptr->data, name, src, isDisplayObject);
 }
 
-internal bool GFxValue_PushBack(GFxValue *ptr, GFxValue *value)
+internal NOINLINE bool GFxValue_PushBack(GFxValue *ptr, GFxValue *value)
 {
   return ValueInterface_PushBack(ptr->valueInterface, ptr->data, value);
 }
 
-internal bool GFxValue_PopBack(GFxValue *ptr, GFxValue *value)
+internal NOINLINE bool GFxValue_PopBack(GFxValue *ptr, GFxValue *value)
 {
   return ValueInterface_PopBack(ptr->valueInterface, ptr->data, value);
 }

@@ -140,6 +140,9 @@ internal bool GetStatsValuesBuffer(DisTweaks_MissionStats *tweaks, r32 *buffer, 
     if (templates[i].type1 == MissionStat_OverallChaos) {
       DisDarknessManager *darknessManager = (*playerPawn)->darknessManager;
       int index = DisDarknessManager_GetChaosTresholdIndex(darknessManager);
+      //TODO(adm244): maybe get these from Game.ini
+      // m_MissionChaosThreshold under DishonoredGame.DishonoredGameInfo
+      // so, it's probably stored in DishonoredGameInfo
       int missionNumber = (tweaks->missionNumber + 1);
       
       //NOTE(adm244): last mission of base game displays chaos level incorrectly
@@ -369,13 +372,13 @@ internal void CDECL Detour_DisTweaks_MissionStats_Destructor(DisTweaks_MissionSt
 internal void NAKED ShowPauseMenu_Hook()
 {
   __asm {
-    push ecx
-    call Detour_ShowPauseMenu
-    pop ecx
-    
     push ebp
     mov ebp, esp
     push 0FFFFFFFFh
+    
+    push ecx
+    call Detour_ShowPauseMenu
+    pop ecx
     
     jmp [hook_showpausemenu_ret]
   }
