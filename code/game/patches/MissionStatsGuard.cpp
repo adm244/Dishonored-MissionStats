@@ -36,15 +36,18 @@ STATIC_POINTER(void, hook_modifystatvariable_ret);
 internal MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerPawn, int type)
 {
   UArray *missionStats = &playerPawn->missionStats;
-  MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
-  
-  for (int i = 0; i < missionStats->length; ++i) {
-    if (missionStatEntries[i].type == (u8)type) {
-      return &missionStatEntries[i];
+  if (missionStats) {
+    MissionStatEntry *missionStatEntries = (MissionStatEntry *)missionStats->data;
+    if (missionStatEntries) {
+      for (int i = 0; i < missionStats->length; ++i) {
+        if (missionStatEntries[i].type == (u8)type) {
+          return &missionStatEntries[i];
+        }
+      }
     }
   }
   
-  OutputDebugStringA("GetMissionStatVariable: Couldn't find a specified mission stat.");
+  //OutputDebugStringA("GetMissionStatVariable: Couldn't find a specified mission stat.");
   return 0;
 }
 
@@ -52,6 +55,8 @@ internal MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerP
 internal bool CDECL Detour_ModifyStatVariable(DishonoredPlayerPawn *playerPawn, int type, r32 amount)
 {
   MissionStatEntry *stat = GetMissionStatVariable(playerPawn, type);
+  if (!stat)
+    return true;
   
   switch (type) {
     case MissionStat_DetectedTimes: {
