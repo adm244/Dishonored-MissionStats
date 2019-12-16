@@ -227,7 +227,9 @@ struct SetPauseMenuFunc : FunctionHandler {
         } break;
         
         case LockState_Stats: {
-          GFxValue_SetBoolean(&lockState, GetMissionNumber() < 0);
+          bool onMission = (GetMissionNumber() >= 0);
+          bool hasStats = ((*playerPawn)->missionStats.length > 0);
+          GFxValue_SetBoolean(&lockState, !(onMission && hasStats));
         } break;
         
         default: {
@@ -309,8 +311,7 @@ internal void CDECL Detour_ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenu)
     return;
   
   GFxValue t_MissionStats_field = {0};
-  //TODO(adm244): load button text from a config file
-  GFxValue_SetStringW(&t_MissionStats_field, L"STATISTICS");
+  GFxValue_SetStringW(&t_MissionStats_field, patchSettings.btnStatsText);
   GFxMovie_SetVariable(gfxPauseMenu, "_root.texts.t_MissionStats", &t_MissionStats_field, SV_Normal);
 
   GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, &OnMissionStatsClicked, 0);
@@ -473,6 +474,11 @@ internal bool InitMissionStatsButton()
     return false;
   
   return true;
+}
+
+internal void InitMissionStatsButtonConfig()
+{
+  patchSettings.btnStatsText = ini_read_wstring("Strings", "btnStatsText", L"STATISTICS");
 }
 
 #endif

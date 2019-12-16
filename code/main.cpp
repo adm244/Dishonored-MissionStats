@@ -27,16 +27,23 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*
   TODO:
-    - check if process is dishonored game
-    - check if game version is supported
     - general code cleanup
 */
 
 #include <windows.h>
 #include <cstdio>
 
+#ifdef Debug
+#include <assert.h>
+#else
+#define assert
+#endif
+
 #include "types.h"
 #include "detours.cpp"
+#include "ini_parser.h"
+
+internal HMODULE thisModule = 0;
 
 #include "game\pointers.h"
 #include "game\types.h"
@@ -54,8 +61,12 @@ internal bool Initialize()
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 {
+  thisModule = (HMODULE)instance;
+  
   if (reason == DLL_PROCESS_ATTACH) {
-    return Initialize() ? TRUE : FALSE;
+    if (!Initialize()) {
+      return FALSE;
+    }
   }
   
   return TRUE;

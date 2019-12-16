@@ -47,7 +47,6 @@ internal MissionStatEntry * GetMissionStatVariable(DishonoredPlayerPawn *playerP
     }
   }
   
-  //OutputDebugStringA("GetMissionStatVariable: Couldn't find a specified mission stat.");
   return 0;
 }
 
@@ -61,7 +60,7 @@ internal bool CDECL Detour_ModifyStatVariable(DishonoredPlayerPawn *playerPawn, 
   switch (type) {
     case MissionStat_DetectedTimes: {
       if ((!stat->value) && (amount > 0.0f)) {
-        ShowLocationDiscovery(L"You've been spotted", false);
+        ShowLocationDiscovery(patchSettings.msgSpotted, false);
       }
     } break;
     
@@ -71,13 +70,13 @@ internal bool CDECL Detour_ModifyStatVariable(DishonoredPlayerPawn *playerPawn, 
       MissionStatEntry *civiliansStat = GetMissionStatVariable(playerPawn, MissionStat_CiviliansKilled);
       
       if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
-        ShowLocationDiscovery(L"You've killed somebody", false);
+        ShowLocationDiscovery(patchSettings.msgKilled, false);
       }
     } break;
     
     case MissionStat_CoinsFound: {
       wchar_t buffer[255];
-      swprintf(buffer, 255, L"Collected %g of %d coins", stat->value + amount, stat->maxValue);
+      swprintf(buffer, 255, patchSettings.msgCoinsCollected, stat->value + amount, stat->maxValue);
       
       ShowGameMessage(buffer, 2.f);
       
@@ -136,6 +135,13 @@ internal bool InitMissionStatsGuard()
   }
   
   return true;
+}
+
+internal void InitMissionStatsGuardConfig()
+{
+  patchSettings.msgSpotted = ini_read_wstring("Strings", "msgSpotted", L"You've been spotted");
+  patchSettings.msgKilled = ini_read_wstring("Strings", "msgKilled", L"You've killed somebody");
+  patchSettings.msgCoinsCollected = ini_read_wstring("Strings", "msgCoinsCollected", L"Collected %g of %d coins");
 }
 
 #endif

@@ -28,8 +28,52 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _GAME_PATCHES_H_
 #define _GAME_PATCHES_H_
 
+#define INI_STORAGE_SIZE 1024
+internal char ini_storage[INI_STORAGE_SIZE];
+
+struct PatchSettings {
+  wchar_t *btnStatsText;
+  wchar_t *msgSpotted;
+  wchar_t *msgKilled;
+  wchar_t *msgCoinsCollected;
+};
+
+internal PatchSettings patchSettings = {0};
+
 #include "patches\MissionStatsButton.cpp"
 #include "patches\MissionStatsGuard.cpp"
+
+internal bool GetConfigFilePath(char *buffer, size_t size)
+{
+  size_t length = GetModuleFileNameA(thisModule, buffer, size);
+  if (length == 0) {
+    return false;
+  }
+  
+  //HACK(adm244): replace dll extension
+  buffer[length - 3] = 'i';
+  buffer[length - 2] = 'n';
+  buffer[length - 1] = 'i';
+  
+  return true;
+}
+
+internal bool ReadConfig()
+{
+  char filepath[MAX_PATH];
+  if (!GetConfigFilePath(filepath, MAX_PATH)) {
+    OutputDebugStringA("ReadConfig: Cannot get filepath for a config.");
+    filepath[0] = '\0';
+  }
+  
+  ini_init(filepath, ini_storage, INI_STORAGE_SIZE);
+  bool result = ini_parse();
+  
+  InitMissionStatsButtonConfig();
+  InitMissionStatsGuardConfig();
+  
+  return result;
+}
 
 internal bool InitPatches()
 {
@@ -41,6 +85,10 @@ internal bool InitPatches()
   if (!InitMissionStatsGuard()) {
     OutputDebugStringA("InitPatches: Couldn't initialize MissionStatsGuard patch.");
     return false;
+  }
+  
+  if (!ReadConfig()) {
+    OutputDebugStringA("InitPatches: Some issues reading config file.");
   }
   
   return true;
