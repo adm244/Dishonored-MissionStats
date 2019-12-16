@@ -58,35 +58,48 @@ internal bool CDECL Detour_ModifyStatVariable(DishonoredPlayerPawn *playerPawn, 
     return true;
   
   switch (type) {
+    case MissionStat_AlarmsRung: {
+      if (patchSettings.options.bShowAlarm) {
+        if ((!stat->value) && (amount > 0.f)) {
+          ShowLocationDiscovery(patchSettings.strings.msgAlarm, false);
+        }
+      }
+    } break;
+    
+    case MissionStat_BodiesFound: {
+      if (patchSettings.options.bShowBodyFound) {
+        if ((!stat->value) && (amount > 0.f)) {
+          ShowLocationDiscovery(patchSettings.strings.msgBodyFound, false);
+        }
+      }
+    } break;
+    
     case MissionStat_DetectedTimes: {
-      if ((!stat->value) && (amount > 0.0f)) {
-        ShowLocationDiscovery(patchSettings.msgSpotted, false);
+      if (patchSettings.options.bShowSpotted) {
+        if ((!stat->value) && (amount > 0.0f)) {
+          ShowLocationDiscovery(patchSettings.strings.msgSpotted, false);
+        }
       }
     } break;
     
     case MissionStat_HostilesKilled:
     case MissionStat_CiviliansKilled: {
-      MissionStatEntry *hostilesStat = GetMissionStatVariable(playerPawn, MissionStat_HostilesKilled);
-      MissionStatEntry *civiliansStat = GetMissionStatVariable(playerPawn, MissionStat_CiviliansKilled);
-      
-      if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
-        ShowLocationDiscovery(patchSettings.msgKilled, false);
+      if (patchSettings.options.bShowKilled) {
+        MissionStatEntry *hostilesStat = GetMissionStatVariable(playerPawn, MissionStat_HostilesKilled);
+        MissionStatEntry *civiliansStat = GetMissionStatVariable(playerPawn, MissionStat_CiviliansKilled);
+        
+        if ((!hostilesStat->value) && (!civiliansStat->value) && (amount > 0.f)) {
+          ShowLocationDiscovery(patchSettings.strings.msgKilled, false);
+        }
       }
     } break;
     
     case MissionStat_CoinsFound: {
-      wchar_t buffer[255];
-      swprintf(buffer, 255, patchSettings.msgCoinsCollected, stat->value + amount, stat->maxValue);
-      
-      ShowGameMessage(buffer, 2.f);
-      
-      /*UString *title = &GetUString(L"Coins collected");
-      UString *text = &GetUString(buffer);
-      NoteContents *note = &GetNoteContents(title, text);
-      
-      //TODO(adm244): figure out how to preload UI_NOTES gfx
-      void *unk20 = GetUnk20();
-      Unk20_ShowNote(unk20, note, 0);*/
+      if (patchSettings.options.bShowCoinsCollected) {
+        wchar_t buffer[255];
+        swprintf(buffer, 255, patchSettings.strings.msgCoinsCollected, (stat->value + amount), stat->maxValue);
+        ShowGameMessage(buffer, 2.f);
+      }
     } break;
     
     default:
@@ -130,8 +143,16 @@ internal void NAKED ModifyStatVariable_Hook()
 //------------- Init -------------//
 internal bool InitMissionStatsGuard()
 {
-  if (!WriteDetour(detour_modifystatvariable, ModifyStatVariable_Hook, 0)) {
-    return false;
+  bool guard_active = patchSettings.options.bShowAlarm
+    || patchSettings.options.bShowBodyFound
+    || patchSettings.options.bShowSpotted
+    || patchSettings.options.bShowKilled
+    || patchSettings.options.bShowCoinsCollected;
+  
+  if (guard_active) {
+    if (!WriteDetour(detour_modifystatvariable, ModifyStatVariable_Hook, 0)) {
+      return false;
+    }
   }
   
   return true;
@@ -139,9 +160,17 @@ internal bool InitMissionStatsGuard()
 
 internal void InitMissionStatsGuardConfig()
 {
-  patchSettings.msgSpotted = ini_read_wstring("Strings", "msgSpotted", L"You've been spotted");
-  patchSettings.msgKilled = ini_read_wstring("Strings", "msgKilled", L"You've killed somebody");
-  patchSettings.msgCoinsCollected = ini_read_wstring("Strings", "msgCoinsCollected", L"Collected %g of %d coins");
+  patchSettings.strings.msgAlarm = ini_read_wstring(CONFIG_STRINGS, "msgAlarm", L"Alarm is set off");
+  patchSettings.strings.msgBodyFound = ini_read_wstring(CONFIG_STRINGS, "msgBodyFound", L"Body was found");
+  patchSettings.strings.msgSpotted = ini_read_wstring(CONFIG_STRINGS, "msgSpotted", L"You've been spotted");
+  patchSettings.strings.msgKilled = ini_read_wstring(CONFIG_STRINGS, "msgKilled", L"You've killed somebody");
+  patchSettings.strings.msgCoinsCollected = ini_read_wstring(CONFIG_STRINGS, "msgCoinsCollected", L"Collected %g of %d coins");
+  
+  patchSettings.options.bShowAlarm = ini_read_bool(CONFIG_OPTIONS, "bShowAlarm", false);
+  patchSettings.options.bShowBodyFound = ini_read_bool(CONFIG_OPTIONS, "bShowBodyFound", false);
+  patchSettings.options.bShowSpotted = ini_read_bool(CONFIG_OPTIONS, "bShowSpotted", true);
+  patchSettings.options.bShowKilled = ini_read_bool(CONFIG_OPTIONS, "bShowKilled", true);
+  patchSettings.options.bShowCoinsCollected = ini_read_bool(CONFIG_OPTIONS, "bShowCoinsCollected", true);
 }
 
 #endif

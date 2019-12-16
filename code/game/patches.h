@@ -31,12 +31,31 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define INI_STORAGE_SIZE 1024
 internal char ini_storage[INI_STORAGE_SIZE];
 
-struct PatchSettings {
+struct PatchStrings {
   wchar_t *btnStatsText;
+  wchar_t *msgAlarm;
+  wchar_t *msgBodyFound;
   wchar_t *msgSpotted;
   wchar_t *msgKilled;
   wchar_t *msgCoinsCollected;
 };
+
+struct PatchOptions {
+  bool bAddStatsButton;
+  bool bShowAlarm;
+  bool bShowBodyFound;
+  bool bShowSpotted;
+  bool bShowKilled;
+  bool bShowCoinsCollected;
+};
+
+struct PatchSettings {
+  PatchStrings strings;
+  PatchOptions options;
+};
+
+#define CONFIG_STRINGS "Strings"
+#define CONFIG_OPTIONS "Options"
 
 internal PatchSettings patchSettings = {0};
 
@@ -77,6 +96,10 @@ internal bool ReadConfig()
 
 internal bool InitPatches()
 {
+  if (!ReadConfig()) {
+    OutputDebugStringA("InitPatches: Some issues reading config file.");
+  }
+  
   if (!InitMissionStatsButton()) {
     OutputDebugStringA("InitPatches: Couldn't initialize MissionStatsButton patch.");
     return false;
@@ -85,10 +108,6 @@ internal bool InitPatches()
   if (!InitMissionStatsGuard()) {
     OutputDebugStringA("InitPatches: Couldn't initialize MissionStatsGuard patch.");
     return false;
-  }
-  
-  if (!ReadConfig()) {
-    OutputDebugStringA("InitPatches: Some issues reading config file.");
   }
   
   return true;

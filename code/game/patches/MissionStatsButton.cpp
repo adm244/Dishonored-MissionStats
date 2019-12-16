@@ -311,7 +311,7 @@ internal void CDECL Detour_ShowPauseMenu(DisGFxMoviePlayerPauseMenu *pauseMenu)
     return;
   
   GFxValue t_MissionStats_field = {0};
-  GFxValue_SetStringW(&t_MissionStats_field, patchSettings.btnStatsText);
+  GFxValue_SetStringW(&t_MissionStats_field, patchSettings.strings.btnStatsText);
   GFxMovie_SetVariable(gfxPauseMenu, "_root.texts.t_MissionStats", &t_MissionStats_field, SV_Normal);
 
   GFxMovie_CreateFunction(gfxPauseMenu, &OnMissionStatsClicked_func, &OnMissionStatsClicked, 0);
@@ -462,23 +462,26 @@ internal void NAKED DisTweaks_MissionStats_Destructor_Hook()
 //------------- Init -------------//
 internal bool InitMissionStatsButton()
 {
-  if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
-    return false;
-  if (!WriteDetour(detour_setmissionstats, SetMissionStats_Hook, 1))
-    return false;
-  if (!WriteDetour(detour_shouldskipmustdoflag, ShouldSkipMustDoFlag_Hook, 1))
-    return false;
-  if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
-    return false;
-  if (!WriteDetour(detour_distweaks_missionstats_dtor, DisTweaks_MissionStats_Destructor_Hook, 0))
-    return false;
+  if (patchSettings.options.bAddStatsButton) {
+    if (!WriteDetour(detour_showpausemenu, ShowPauseMenu_Hook, 0))
+      return false;
+    if (!WriteDetour(detour_setmissionstats, SetMissionStats_Hook, 1))
+      return false;
+    if (!WriteDetour(detour_shouldskipmustdoflag, ShouldSkipMustDoFlag_Hook, 1))
+      return false;
+    if (!WriteDetour(detour_distweaks_missionstats_ctor, DisTweaks_MissionStats_Constructor_Hook, 2))
+      return false;
+    if (!WriteDetour(detour_distweaks_missionstats_dtor, DisTweaks_MissionStats_Destructor_Hook, 0))
+      return false;
+  }
   
   return true;
 }
 
 internal void InitMissionStatsButtonConfig()
 {
-  patchSettings.btnStatsText = ini_read_wstring("Strings", "btnStatsText", L"STATISTICS");
+  patchSettings.strings.btnStatsText = ini_read_wstring(CONFIG_STRINGS, "btnStatsText", L"STATISTICS");
+  patchSettings.options.bAddStatsButton = ini_read_bool(CONFIG_OPTIONS, "bAddStatsButton", true);
 }
 
 #endif

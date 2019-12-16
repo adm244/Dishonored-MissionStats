@@ -688,6 +688,8 @@ internal bool ini_parse_buffer(char *buffer, size_t size)
 
 internal ini_value_t * ini_get_value(char *section, char *key)
 {
+  assert(key);
+  
   ini_entry_t *entries = (ini_entry_t *)ini_settings.entries.base;
   ini_value_t *value = 0;
   bool section_search = section ? true : false;
