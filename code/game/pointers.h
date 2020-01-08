@@ -28,7 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _POINTERS_H_
 #define _POINTERS_H_
 
-//------------- Macros -------------//
+//------------- Macro -------------//
 // internal void (* ptr_<name>_addr) = (void *)(<addr>)
 #define DEFINE_STATIC_POINTER(name, addr) internal void (* ptr_##name##_addr) = (void *)(addr)
 // internal <type> (*const <name>) = (<type> *)ptr_<name>_addr;

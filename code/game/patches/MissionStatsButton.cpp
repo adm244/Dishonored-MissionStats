@@ -37,15 +37,16 @@ enum ButtonLockState {
   LockState_Stats,
 };
 
+enum DisTweaks_MissionStats_Flags {
+  Patch_ReplaceBPressed = 0x80000000,
+  Patch_SkipMustDoFlag = 0x40000000,
+};
+
+//------------- Structures -------------//
 struct ButtonsData {
   char *name;
   char *callback;
   ButtonLockState state;
-};
-
-enum DisTweaks_MissionStats_Flags {
-  Patch_ReplaceBPressed = 0x80000000,
-  Patch_SkipMustDoFlag = 0x40000000,
 };
 
 //------------- Static pointers -------------//
