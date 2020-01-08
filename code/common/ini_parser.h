@@ -35,9 +35,9 @@ OTHER DEALINGS IN THE SOFTWARE.
       06: key1 = 16
       07: key2 = -123
       08: key3 = +1 ; comments in values are also valid
-      09: 
-      10: key4 = true
-      11: key5 = false
+      09: key4 = 0.03
+      10: key5 = true
+      11: key6 = false
       12: 
       13: [Strings]
       14: key1 = "some c-string"
@@ -46,14 +46,14 @@ OTHER DEALINGS IN THE SOFTWARE.
     NOTES:
     - No dynamic memory allocations
     - Uses two arenas to store parsed data
+    - Uses WinAPI for file reads and utf8-to-utf16 conversion
     - CR (carrige return) characters are replaces with SPACE (' ')
     - Blank lines are ignored
     - Empty (global) section is supported
     - Section name is considered to be a string enclosed in DOUBLE_QUOTE ('"')
     - Key is one word only
-    - Value can be INT, BOOL, STRING (char *) or WSTRING (wchar_t *)
+    - Value can be INT, FLOAT, BOOL, STRING (char *) or WSTRING (wchar_t *)
     - WSTRING is assumed to be in UTF-8 encoding
-    - Float values are NOT supported
     - Hexadecimal\octal\binary format of INT is NOT supported
     - Escaped characters (\t, \n, \x, etc.) are NOT supported
     
@@ -70,6 +70,7 @@ OTHER DEALINGS IN THE SOFTWARE.
         }
         
         int int_value = ini_read_int("section", "key", 0);
+        float float_value = ini_read_float("section", "key", 0.0f);
         bool bool_value = ini_read_bool(0, "globalkey", false);
         char *str_value = ini_read_string("section", "key", "default");
         wchar_t *wstr_value = ini_read_wstring("section", "key", L"default");
@@ -96,9 +97,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define INI_KEY_LENGTH 128
 #define INI_VALUE_LENGTH 1024
 
+//#define internal static
+
 enum ini_value_type {
   INI_VALUE_GARBAGE = 0,
   INI_VALUE_INT,
+  INI_VALUE_FLOAT,
   INI_VALUE_BOOL,
   INI_VALUE_STRING,
   INI_VALUE_WSTRING,
@@ -121,6 +125,7 @@ struct ini_value_t {
   ini_value_type type;
   union {
     int number;
+    float real;
     bool boolean;
     char *str;
     wchar_t *wstr;
@@ -230,6 +235,10 @@ internal void ini_store_keyvalue(char *key, ini_value_t *value)
   switch (entry.value.type) {
     case INI_VALUE_INT: {
       entry.value.number = value->number;
+    } break;
+    
+    case INI_VALUE_FLOAT: {
+      entry.value.real = value->real;
     } break;
     
     case INI_VALUE_BOOL: {
@@ -528,6 +537,33 @@ internal bool ini_convert_utf8_to_utf16(char *src, wchar_t *dest, size_t count)
   return true;
 }
 
+internal bool is_float(char *buffer)
+{
+  bool result = false;
+  
+  char *p = buffer;
+  if (is_sign(*p)) {
+    ++p;
+  }
+  
+  while (*p != '\0') {
+    if (*p == '.') {
+      if (result) {
+        return false;
+      }
+      result = true;
+    } else {
+      if (!is_number(*p)) {
+        return false;
+      }
+    }
+    
+    ++p;
+  }
+  
+  return result;
+}
+
 internal bool ini_parse_value(char *buffer, ini_value_t *value)
 {
   assert(buffer);
@@ -535,35 +571,7 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
   
   value->type = INI_VALUE_GARBAGE;
   
-  if (is_number(buffer[0]) || is_sign(buffer[0])) {
-    char *p = is_sign(buffer[0]) ? buffer + 1 : buffer;
-    int number = 0;
-    
-    while (*p != '\0') {
-      if (!is_number(*p)) {
-        break;
-      }
-      
-      number *= 10;
-      number += (*p - '0');
-      
-      ++p;
-    }
-    
-    if (*p != '\0') {
-      return false;
-    }
-    
-    if (buffer[0] == '-') {
-      number = -number;
-    }
-    
-    value->type = INI_VALUE_INT;
-    value->number = number;
-    return true;
-  }
-  
-  else if ((buffer[0] == 't') || (buffer[0] == 'f')) {
+  if ((buffer[0] == 't') || (buffer[0] == 'f')) {
     if (strcmp(buffer, "true") == 0) {
       value->type = INI_VALUE_BOOL;
       value->boolean = true;
@@ -575,6 +583,8 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
       value->boolean = false;
       return true;
     }
+    
+    return false;
   }
   
   else if (buffer[0] == '\"') {
@@ -614,6 +624,43 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
     
     value->type = INI_VALUE_WSTRING;
     value->wstr = str_utf16;
+    return true;
+  }
+  
+  else if (is_float(buffer)) {
+    if (sscanf_s(buffer, "%f\0", &value->real) > 0) {
+      value->type = INI_VALUE_FLOAT;
+      return true;
+    }
+    
+    return false;
+  }
+  
+  else if (is_number(buffer[0]) || is_sign(buffer[0])) {
+    char *p = is_sign(buffer[0]) ? buffer + 1 : buffer;
+    int number = 0;
+    
+    while (*p != '\0') {
+      if (!is_number(*p)) {
+        break;
+      }
+      
+      number *= 10;
+      number += (*p - '0');
+      
+      ++p;
+    }
+    
+    if (*p != '\0') {
+      return false;
+    }
+    
+    if (buffer[0] == '-') {
+      number = -number;
+    }
+    
+    value->type = INI_VALUE_INT;
+    value->number = number;
     return true;
   }
   
@@ -674,7 +721,7 @@ internal bool ini_parse_buffer(char *buffer, size_t size)
     line = ini_strip_comments(line);
     line = ini_strip_whitespace(line);
     
-    if (strlen(line) == 0)
+    if (line[0] == '\0')
       continue;
     
     if (!ini_parse_line(line)) {
@@ -688,8 +735,6 @@ internal bool ini_parse_buffer(char *buffer, size_t size)
 
 internal ini_value_t * ini_get_value(char *section, char *key)
 {
-  assert(key);
-  
   ini_entry_t *entries = (ini_entry_t *)ini_settings.entries.base;
   ini_value_t *value = 0;
   bool section_search = section ? true : false;
@@ -771,6 +816,26 @@ internal int ini_read_int(char *section, char *key, int default)
   
   if (value->type == INI_VALUE_BOOL) {
     return value->boolean;
+  }
+  
+  return default;
+}
+
+internal float ini_read_float(char *section, char *key, float default)
+{
+  assert(key);
+  
+  ini_value_t *value = ini_get_value(section, key);
+  if (!value) {
+    return default;
+  }
+  
+  if (value->type == INI_VALUE_FLOAT) {
+    return value->real;
+  }
+  
+  if (value->type == INI_VALUE_INT) {
+    return (float)value->number;
   }
   
   return default;
